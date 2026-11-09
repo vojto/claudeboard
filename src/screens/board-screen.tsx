@@ -167,7 +167,15 @@ export function BoardScreen() {
                       session={board.sessions[id] ?? liveSessions[id]}
                       state={liveSessions[id].status}
                       color={board.colors[id] ?? null}
+                      columns={board.columns}
+                      columnId={column.id}
                       onOpen={() => openSession(id)}
+                      onMoveTo={(toColumnId) =>
+                        update((current) => {
+                          const toColumn = current.columns.find((other) => other.id === toColumnId)
+                          return boards.moveCard(current, id, toColumnId, toColumn?.cardIds[0])
+                        })
+                      }
                       onPickColor={(color) => update((current) => boards.setCardColor(current, id, color))}
                       onArchive={() => update((current) => boards.archiveCard(current, id))}
                     />

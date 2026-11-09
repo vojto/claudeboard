@@ -3,7 +3,7 @@
   Demo page for README screenshots. Runs the real app with fake sessions instead of
   the Rust backend, so no real session titles end up in the screenshots.
   Used by scripts/screenshots.sh while `pnpm dev` is running.
-  ?menu opens a right-click menu, ?color also opens its Color submenu, ?noinbox empties the Inbox,
+  ?menu opens a right-click menu, ?color / ?move also open its Color / Move to submenu, ?noinbox empties the Inbox,
   ?collapsed collapses the Done column, ?colmenu right-clicks a column header.
 -->
 <html lang="en">
@@ -55,15 +55,15 @@
         },
       }
 
-      if (params.has("menu") || params.has("color")) {
+      if (params.has("menu") || params.has("color") || params.has("move")) {
         setTimeout(() => {
           const card = [...document.querySelectorAll("section div")].find((el) => el.textContent === "Migrate auth to passkeys")
           const rect = card.getBoundingClientRect()
           const init = { bubbles: true, cancelable: true, clientX: rect.left + 120, clientY: rect.top + 30, button: 2 }
           card.dispatchEvent(new MouseEvent("contextmenu", init))
-          if (params.has("color")) {
+          if (params.has("color") || params.has("move")) {
             setTimeout(() => {
-              const trigger = [...document.querySelectorAll("[role=menuitem]")].find((el) => el.textContent.startsWith("Color"))
+              const trigger = [...document.querySelectorAll("[role=menuitem]")].find((el) => el.textContent.startsWith(params.has("move") ? "Move to" : "Color"))
               trigger.click()
             }, 300)
           }

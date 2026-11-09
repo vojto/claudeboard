@@ -26,7 +26,7 @@ export function MenuItem({
     : "text-zinc-800 data-highlighted:bg-zinc-100 dark:text-zinc-100 dark:data-highlighted:bg-zinc-700"
   return (
     <Menu.Item
-      className={`flex cursor-default items-center rounded-md px-2.5 py-1.5 outline-none select-none ${color} ${className}`}
+      className={`flex cursor-default items-center rounded-md px-2.5 py-1.5 outline-none select-none data-disabled:opacity-50 ${color} ${className}`}
       {...props}
     />
   )

@@ -1,16 +1,17 @@
 import { ContextMenu } from "@base-ui/react/context-menu"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import type { KnownSession, SessionStatus } from "../lib/board"
+import type { Column, KnownSession, SessionStatus } from "../lib/board"
 import { type CardColor, COLOR_STYLES, DEFAULT_CARD_STYLE } from "../lib/colors"
 import { MenuItem, MenuPopup, MenuSeparator } from "../ui/menu"
 import { ColorSubmenu } from "./color-submenu"
+import { MoveToSubmenu } from "./move-to-submenu"
 import { StateBadge } from "./state-badge"
 
 /*
  * One Claude session on the board. Shows its title, project and state.
  * For worktree sessions (…/project/.claude/worktrees/branch) the project is the main folder's name.
- * Draggable between columns. Right-click opens a menu with Open (in Claude), Color and Archive.
+ * Draggable between columns. Right-click opens a menu with Open (in Claude), Move to, Color and Archive.
  * A picked color tints the card. Right-clicks stop here so the column's menu doesn't open too.
  * Double-click also opens it. SessionCardBody is the plain look, reused for the drag overlay.
  */
@@ -19,12 +20,25 @@ type Props = {
   session: KnownSession
   state: SessionStatus
   color: CardColor | null
+  columns: Column[]
+  columnId: string
   onOpen: () => void
+  onMoveTo: (columnId: string) => void
   onPickColor: (color: CardColor | null) => void
   onArchive: () => void
 }
 
-export function SessionCard({ session, state, color, onOpen, onPickColor, onArchive }: Props) {
+export function SessionCard({
+  session,
+  state,
+  color,
+  columns,
+  columnId,
+  onOpen,
+  onMoveTo,
+  onPickColor,
+  onArchive,
+}: Props) {
   const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({
     id: session.id,
     data: { type: "card" },
@@ -47,6 +61,7 @@ export function SessionCard({ session, state, color, onOpen, onPickColor, onArch
           <ContextMenu.Positioner className="z-50">
             <MenuPopup>
               <MenuItem onClick={onOpen}>Open in Claude</MenuItem>
+              <MoveToSubmenu columns={columns} currentColumnId={columnId} onMove={onMoveTo} />
               <ColorSubmenu color={color} onPick={onPickColor} />
               <MenuSeparator />
               <MenuItem onClick={onArchive}>Archive</MenuItem>
