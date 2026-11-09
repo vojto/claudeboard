@@ -1,14 +1,14 @@
 /*
  * The board's data model and the pure functions that change it.
  * A board is a list of columns, each holding session ids in order. The board also
- * remembers every session it has seen (name, folder) so cards survive after the
- * session's process exits, and which sessions the user archived (hidden for good).
+ * remembers every session it has seen (name, folder) and which ones the user archived.
+ * Ended sessions stay in their column here but aren't shown, so if a session starts
+ * again its card comes back where it was.
  */
 
 export const INBOX_ID = "inbox"
 
 export type SessionStatus = "busy" | "idle"
-export type CardState = SessionStatus | "ended"
 
 export type KnownSession = { id: string; name: string; cwd: string }
 export type LiveSession = KnownSession & { status: SessionStatus }
@@ -56,29 +56,17 @@ export function mergeLiveSessions(board: Board, live: LiveSession[]): Board {
   return { ...board, sessions, columns }
 }
 
-/*
- * Moves cards whose state just changed, within their own column:
- * became busy → top, became ended → bottom. Other changes keep the user's order.
- */
-export function reorderByStateChanges(
+/* Moves cards that just became busy to the top of their column. Everything else keeps the user's order. */
+export function moveNewlyBusyToTop(
   board: Board,
-  before: Record<string, CardState>,
-  after: Record<string, CardState>,
+  before: Record<string, SessionStatus>,
+  after: Record<string, SessionStatus>,
 ): Board {
-  const columns = board.columns.map((column) => {
-    const becameBusy: string[] = []
-    const becameEnded: string[] = []
-    const rest: string[] = []
-
-    for (const id of column.cardIds) {
-      const was = before[id] ?? "ended"
-      const now = after[id] ?? "ended"
-      if (was !== now && now === "busy") becameBusy.push(id)
-      else if (was !== now && now === "ended") becameEnded.push(id)
-      else rest.push(id)
-    }
-    return { ...column, cardIds: [...becameBusy, ...rest, ...becameEnded] }
-  })
+  const isNewlyBusy = (id: string) => after[id] === "busy" && before[id] !== "busy"
+  const columns = board.columns.map((column) => ({
+    ...column,
+    cardIds: [...column.cardIds.filter(isNewlyBusy), ...column.cardIds.filter((id) => !isNewlyBusy(id))],
+  }))
   return { ...board, columns }
 }
 

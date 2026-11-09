@@ -1,7 +1,7 @@
 import { ContextMenu } from "@base-ui/react/context-menu"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import type { CardState, KnownSession } from "../lib/board"
+import type { KnownSession, SessionStatus } from "../lib/board"
 import { MenuItem, MenuPopup, MenuSeparator } from "../ui/menu"
 import { StateBadge } from "./state-badge"
 
@@ -13,7 +13,7 @@ import { StateBadge } from "./state-badge"
 
 type Props = {
   session: KnownSession
-  state: CardState
+  state: SessionStatus
   onOpen: () => void
   onArchive: () => void
 }
@@ -50,7 +50,7 @@ export function SessionCard({ session, state, onOpen, onArchive }: Props) {
   )
 }
 
-export function SessionCardBody({ session, state }: { session: KnownSession; state: CardState }) {
+export function SessionCardBody({ session, state }: { session: KnownSession; state: SessionStatus }) {
   const folder = session.cwd.split("/").filter(Boolean).pop() ?? session.cwd
   return (
     <div className="cursor-grab rounded-lg border border-zinc-200 bg-white p-3 shadow-xs select-none active:cursor-grabbing dark:border-zinc-700 dark:bg-zinc-800">

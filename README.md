@@ -9,8 +9,9 @@ Every running Claude Code session shows up as a card. You make the columns and d
 ## What it does
 
 - **Live sessions.** Reads `~/.claude/sessions` every 2 seconds. New sessions land in the **Inbox**.
-- **Live state.** Each card is **Busy**, **Idle**, or **Ended** (the session's process is gone).
-- **Auto-sorting on state changes.** A card that turns busy jumps to the top of its column. A card that ends drops to the bottom. Otherwise your order stays.
+- **Live state.** Each card shows **Busy** or **Idle**.
+- **Busy goes to the top.** A card that turns busy jumps to the top of its column. Otherwise your order stays.
+- **Ended sessions hide.** When a session's process exits, its card disappears. If the session starts again, the card comes back in the same spot.
 - **Your own columns.** Add, rename, reorder and delete columns. Deleting a column moves its cards back to the Inbox.
 - **Right-click a card** to open it in Claude, or archive it. Double-click also opens it.
 - **Archive** only hides the card in Claudeboard. It doesn't touch the session in Claude.
@@ -37,6 +38,12 @@ You need [Rust](https://rustup.rs), Node and [pnpm](https://pnpm.io). macOS only
 ```bash
 pnpm install
 pnpm tauri dev
+```
+
+Retake the README screenshots (uses fake sessions from `docs/demo.html`, needs the dev server running):
+
+```bash
+scripts/screenshots.sh
 ```
 
 Build an app bundle:

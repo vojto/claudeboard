@@ -8,10 +8,12 @@ import { ColumnTitle } from "./column-title"
 /*
  * One column of the board. Drag it by its header to reorder columns (the Inbox stays put).
  * The body is a drop zone for cards; the cards themselves are passed in as children.
+ * visibleCardIds are the cards actually shown (running sessions), used for sorting and the count.
  */
 
 type Props = {
   column: Column
+  visibleCardIds: string[]
   isEditingTitle: boolean
   onStartEditing: () => void
   onFinishEditing: (title: string | null) => void
@@ -19,7 +21,15 @@ type Props = {
   children: ReactNode
 }
 
-export function BoardColumn({ column, isEditingTitle, onStartEditing, onFinishEditing, onDelete, children }: Props) {
+export function BoardColumn({
+  column,
+  visibleCardIds,
+  isEditingTitle,
+  onStartEditing,
+  onFinishEditing,
+  onDelete,
+  children,
+}: Props) {
   const isInbox = column.id === INBOX_ID
   const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({
     id: column.id,
@@ -46,11 +56,11 @@ export function BoardColumn({ column, isEditingTitle, onStartEditing, onFinishEd
             onFinish={onFinishEditing}
           />
         </div>
-        <span className="text-xs text-zinc-400">{column.cardIds.length}</span>
+        <span className="text-xs text-zinc-400">{visibleCardIds.length}</span>
         <ColumnMenu isInbox={isInbox} onRename={onStartEditing} onDelete={onDelete} />
       </header>
 
-      <SortableContext items={column.cardIds} strategy={verticalListSortingStrategy}>
+      <SortableContext items={visibleCardIds} strategy={verticalListSortingStrategy}>
         <div className="flex min-h-16 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">{children}</div>
       </SortableContext>
     </section>

@@ -1,0 +1,58 @@
+<!doctype html>
+<!--
+  Demo page for README screenshots. Runs the real app with fake sessions instead of
+  the Rust backend, so no real session titles end up in the screenshots.
+  Used by scripts/screenshots.sh while `pnpm dev` is running. Add ?menu to open a right-click menu.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Claudeboard demo</title>
+    <script>
+      const sessions = [
+        ["s1", "Add dark mode to settings page", "/Users/me/Code/acme-web", "busy"],
+        ["s2", "Fix flaky checkout test", "/Users/me/Code/acme-web", "idle"],
+        ["s3", "Migrate auth to passkeys", "/Users/me/Code/acme-api", "busy"],
+        ["s4", "Write release notes for 2.4", "/Users/me/Code/acme-docs", "idle"],
+        ["s5", "Investigate slow search queries", "/Users/me/Code/acme-api", "idle"],
+        ["s6", "Prototype offline sync", "/Users/me/Code/acme-mobile", "busy"],
+        ["s7", "Clean up old feature flags", "/Users/me/Code/acme-web", "idle"],
+        ["s8", "Explore new onboarding flow", "/Users/me/Code/acme-mobile", "idle"],
+        ["s9", "Bump dependencies", "/Users/me/Code/acme-api", "idle"],
+      ].map(([id, name, cwd, status]) => ({ id: "local_" + id, name, cwd, status }))
+
+      const board = {
+        columns: [
+          { id: "inbox", title: "Inbox", cardIds: ["local_s1", "local_s8"] },
+          { id: "col_a", title: "In progress", cardIds: ["local_s3", "local_s6", "local_s5"] },
+          { id: "col_b", title: "Needs review", cardIds: ["local_s2", "local_s4"] },
+          { id: "col_c", title: "Done", cardIds: ["local_s7", "local_s9"] },
+        ],
+        sessions: Object.fromEntries(sessions.map(({ id, name, cwd }) => [id, { id, name, cwd }])),
+        archivedIds: [],
+      }
+
+      window.__TAURI_INTERNALS__ = {
+        transformCallback: () => 0,
+        invoke: async (cmd) => {
+          if (cmd === "load_board") return JSON.stringify(board)
+          if (cmd === "list_sessions") return sessions
+          return null
+        },
+      }
+
+      if (location.search.includes("menu")) {
+        setTimeout(() => {
+          const card = document.querySelectorAll("section")[1].querySelector("section > div > div > div")
+          const rect = card.getBoundingClientRect()
+          const init = { bubbles: true, cancelable: true, clientX: rect.left + 120, clientY: rect.top + 30, button: 2 }
+          card.dispatchEvent(new MouseEvent("contextmenu", init))
+        }, 800)
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -18,7 +18,7 @@ import { useState } from "react"
 import { BoardColumn } from "../components/board-column"
 import { SessionCard, SessionCardBody } from "../components/session-card"
 import * as boards from "../lib/board"
-import type { Board, CardState } from "../lib/board"
+import type { Board } from "../lib/board"
 import { openSession } from "../lib/claude"
 import { useBoard } from "../lib/use-board"
 
@@ -27,6 +27,7 @@ import { useBoard } from "../lib/use-board"
  * Owns drag and drop. Cards move between columns live while dragging (onDragOver)
  * and settle on drop (onDragEnd). Columns reorder by dragging their header.
  * Also handles adding, renaming and deleting columns, and archiving cards.
+ * Only running sessions are shown; ended ones keep their spot but stay hidden.
  */
 
 /* While dragging a column, only look at other columns. While dragging a card, look at everything. */
@@ -59,10 +60,6 @@ export function BoardScreen() {
 
   function update(change: (board: Board) => Board) {
     setBoard((current) => current && change(current))
-  }
-
-  function stateOf(id: string): CardState {
-    return liveSessions[id]?.status ?? "ended"
   }
 
   function handleDragStart({ active }: DragStartEvent) {
@@ -130,26 +127,30 @@ export function BoardScreen() {
       >
         <div className="flex flex-1 items-start gap-3 overflow-x-auto p-4">
           <SortableContext items={board.columns.map((column) => column.id)} strategy={horizontalListSortingStrategy}>
-            {board.columns.map((column) => (
-              <BoardColumn
-                key={column.id}
-                column={column}
-                isEditingTitle={editingColumnId === column.id}
-                onStartEditing={() => setEditingColumnId(column.id)}
-                onFinishEditing={(title) => handleFinishEditing(column.id, title)}
-                onDelete={() => update((current) => boards.deleteColumn(current, column.id))}
-              >
-                {column.cardIds.map((id) => (
-                  <SessionCard
-                    key={id}
-                    session={board.sessions[id] ?? { id, name: "Unknown session", cwd: "" }}
-                    state={stateOf(id)}
-                    onOpen={() => openSession(id)}
-                    onArchive={() => update((current) => boards.archiveCard(current, id))}
-                  />
-                ))}
-              </BoardColumn>
-            ))}
+            {board.columns.map((column) => {
+              const visibleCardIds = column.cardIds.filter((id) => liveSessions[id])
+              return (
+                <BoardColumn
+                  key={column.id}
+                  column={column}
+                  visibleCardIds={visibleCardIds}
+                  isEditingTitle={editingColumnId === column.id}
+                  onStartEditing={() => setEditingColumnId(column.id)}
+                  onFinishEditing={(title) => handleFinishEditing(column.id, title)}
+                  onDelete={() => update((current) => boards.deleteColumn(current, column.id))}
+                >
+                  {visibleCardIds.map((id) => (
+                    <SessionCard
+                      key={id}
+                      session={board.sessions[id] ?? liveSessions[id]}
+                      state={liveSessions[id].status}
+                      onOpen={() => openSession(id)}
+                      onArchive={() => update((current) => boards.archiveCard(current, id))}
+                    />
+                  ))}
+                </BoardColumn>
+              )
+            })}
           </SortableContext>
 
           <button
@@ -163,7 +164,7 @@ export function BoardScreen() {
         <DragOverlay dropAnimation={dropAnimation}>
           {activeSession && (
             <div data-tilt className="rotate-2">
-              <SessionCardBody session={activeSession} state={stateOf(activeSession.id)} />
+              <SessionCardBody session={activeSession} state={liveSessions[activeSession.id]?.status ?? "idle"} />
             </div>
           )}
           {activeColumn && (
