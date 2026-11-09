@@ -83,7 +83,7 @@ export function SessionCardBody({ session, state, color, onOpen }: BodyProps) {
       className={`rounded-lg border p-3 shadow-xs select-none ${color ? COLOR_STYLES[color].card : DEFAULT_CARD_STYLE}`}
     >
       <div className="line-clamp-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
-        <span onClick={onOpen} className="hover:underline">
+        <span onClick={onOpen} className="cursor-pointer hover:underline">
           {session.name}
         </span>
       </div>
