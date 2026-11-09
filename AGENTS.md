@@ -4,7 +4,7 @@ A Tauri 2 + React + TypeScript + Tailwind app that shows the Claude desktop app'
 
 ## Layout
 
-- `src-tauri/src/lib.rs` — Rust commands: list live sessions, open a session via `claude://`, load/save the board.
+- `src-tauri/src/lib.rs` — Rust commands: list live sessions (with "waiting" from the hooks and "merged" from the Claude app's session records), open a session via `claude://`, load/save the board.
 - `hooks/claudeboard-hook.sh` + `scripts/install-hooks.mjs` — Claude Code hooks that mark a session as "Needs you" (a file in `~/.claude/claudeboard/waiting/`). Re-run the installer after changing the hook.
 - `src/lib/board.ts` — board data model and pure functions that change it.
 - `src/lib/use-board.ts` — loads the board, polls sessions every 2s, saves changes.

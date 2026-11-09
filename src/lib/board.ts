@@ -11,7 +11,7 @@ import type { CardColor } from "./colors"
 
 export const INBOX_ID = "inbox"
 
-export type SessionStatus = "busy" | "idle" | "waiting"
+export type SessionStatus = "busy" | "idle" | "waiting" | "merged"
 
 export type KnownSession = { id: string; name: string; cwd: string }
 export type LiveSession = KnownSession & { status: SessionStatus }

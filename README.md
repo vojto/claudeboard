@@ -9,7 +9,7 @@ Every running Claude Code session shows up as a card. You make the columns and d
 ## What it does
 
 - **Live sessions.** Reads `~/.claude/sessions` every 2 seconds. New sessions land in the **Inbox** (the blue column). It collapses on its own when it's empty.
-- **Live state.** Each card shows **Busy**, **Idle**, or a red **Needs you** when Claude is asking you a question or waiting for permission.
+- **Live state.** Each card shows **Busy**, **Idle**, a red **Needs you** when Claude is asking you a question or waiting for permission, or a purple **Merged** once the session's pull request is merged.
 - **Busy goes to the top.** A card that turns busy or starts needing you jumps to the top of its column. Otherwise your order stays.
 - **Ended sessions hide.** When a session's process exits, its card disappears. If the session starts again, the card comes back in the same spot.
 - **Your own columns.** Add, rename, reorder and delete columns. Deleting a column moves its cards back to the Inbox.
@@ -41,6 +41,8 @@ node scripts/install-hooks.mjs
 ```
 
 This adds a few hooks to `~/.claude/settings.json` (a backup goes to `settings.json.before-claudeboard`). When Claude asks a question or wants permission, the hook creates `~/.claude/claudeboard/waiting/<session id>`. When you answer or the turn ends, it deletes it.
+
+**Merged** comes from the Claude app's own record of each session, in `~/Library/Application Support/Claude/claude-code-sessions/`. It lists the session's pull requests and their state. A card shows Merged when it's idle, at least one PR is merged and none is still open.
 
 Your board is saved to `~/Library/Application Support/net.rinik.claudeboard/board.json`.
 

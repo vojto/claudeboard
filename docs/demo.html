@@ -16,12 +16,12 @@
         ["s1", "Add dark mode to settings page", "/Users/me/Code/acme-web", "waiting"],
         ["s2", "Fix flaky checkout test", "/Users/me/Code/acme-web", "idle"],
         ["s3", "Migrate auth to passkeys", "/Users/me/Code/acme-api", "busy"],
-        ["s4", "Write release notes for 2.4", "/Users/me/Code/acme-docs", "idle"],
+        ["s4", "Write release notes for 2.4", "/Users/me/Code/acme-docs", "merged"],
         ["s5", "Investigate slow search queries", "/Users/me/Code/acme-api", "idle"],
         ["s6", "Prototype offline sync", "/Users/me/Code/acme-mobile", "busy"],
-        ["s7", "Clean up old feature flags", "/Users/me/Code/acme-web", "idle"],
+        ["s7", "Clean up old feature flags", "/Users/me/Code/acme-web", "merged"],
         ["s8", "Explore new onboarding flow", "/Users/me/Code/acme-mobile", "idle"],
-        ["s9", "Bump dependencies", "/Users/me/Code/acme-api", "idle"],
+        ["s9", "Bump dependencies", "/Users/me/Code/acme-api", "merged"],
       ].map(([id, name, cwd, status]) => ({ id: "local_" + id, name, cwd, status }))
 
       const board = {

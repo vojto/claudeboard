@@ -4,6 +4,9 @@
  *   process is still alive and that belong to the Claude desktop app (have a hostSessionId).
  *   A session is "waiting" when the Claudeboard hook left a mark for it in
  *   ~/.claude/claudeboard/waiting/<sessionId> (see hooks/claudeboard-hook.sh).
+ *   An idle session is "merged" when the Claude app's own record of it
+ *   (~/Library/Application Support/Claude/claude-code-sessions/<account>/<org>/<hostSessionId>.json)
+ *   lists a merged pull request and none that are still open.
  * - open_session: opens a session in Claude via the claude:// link.
  * - load_board / save_board: keep the board layout as JSON in the app data folder.
  */
@@ -42,6 +45,47 @@ fn is_waiting(session_id: &Option<String>) -> bool {
         .is_some_and(|id| claude_dir().join("claudeboard/waiting").join(id).exists())
 }
 
+#[derive(Deserialize)]
+struct DesktopSession {
+    prs: Option<Vec<PullRequest>>,
+}
+
+#[derive(Deserialize)]
+struct PullRequest {
+    state: Option<String>,
+}
+
+fn desktop_session_path(host_session_id: &str) -> Option<PathBuf> {
+    let home = std::env::var("HOME").unwrap_or_default();
+    let base = PathBuf::from(home).join("Library/Application Support/Claude/claude-code-sessions");
+    let file_name = format!("{host_session_id}.json");
+    fs::read_dir(base)
+        .ok()?
+        .flatten()
+        .filter_map(|account| fs::read_dir(account.path()).ok())
+        .flat_map(|orgs| orgs.flatten())
+        .map(|org| org.path().join(&file_name))
+        .find(|path| path.exists())
+}
+
+fn is_pr_merged(host_session_id: &str) -> bool {
+    let Some(text) =
+        desktop_session_path(host_session_id).and_then(|path| fs::read_to_string(path).ok())
+    else {
+        return false;
+    };
+    let Ok(session) = serde_json::from_str::<DesktopSession>(&text) else {
+        return false;
+    };
+    let states: Vec<String> = session
+        .prs
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|pr| pr.state)
+        .collect();
+    states.iter().any(|state| state == "MERGED") && !states.iter().any(|state| state == "OPEN")
+}
+
 fn is_process_alive(pid: i32) -> bool {
     unsafe { libc::kill(pid, 0) == 0 }
 }
@@ -59,13 +103,17 @@ fn list_sessions() -> Vec<Session> {
         .filter_map(|text| serde_json::from_str::<SessionFile>(&text).ok())
         .filter(|file| is_process_alive(file.pid))
         .filter_map(|file| {
+            let id = file.host_session_id?;
+            let status = file.status.unwrap_or_else(|| "idle".into());
             let status = if is_waiting(&file.session_id) {
                 "waiting".into()
+            } else if status == "idle" && is_pr_merged(&id) {
+                "merged".into()
             } else {
-                file.status.unwrap_or_else(|| "idle".into())
+                status
             };
             Some(Session {
-                id: file.host_session_id?,
+                id,
                 name: file.name.unwrap_or_else(|| "Untitled".into()),
                 cwd: file.cwd.unwrap_or_default(),
                 status,
@@ -78,13 +126,18 @@ fn list_sessions() -> Vec<Session> {
 fn open_session(id: String) -> Result<(), String> {
     let is_valid_id = id.starts_with("local_")
         && id.len() <= 70
-        && id[6..].chars().all(|c| c.is_ascii_alphanumeric() || c == '-');
+        && id[6..]
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-');
     if !is_valid_id {
         return Err(format!("Not a valid session id: {id}"));
     }
 
     let url = format!("claude://code/continue?session={id}");
-    Command::new("open").arg(url).status().map_err(|e| e.to_string())?;
+    Command::new("open")
+        .arg(url)
+        .status()
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
