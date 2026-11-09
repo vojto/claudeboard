@@ -46,7 +46,6 @@ export function BoardColumn({
   })
 
   const tint = isInbox ? "bg-blue-50 dark:bg-blue-950/40" : "bg-zinc-100 dark:bg-zinc-900"
-  const grab = isInbox ? "" : "cursor-grab active:cursor-grabbing"
 
   return (
     <section
@@ -58,7 +57,7 @@ export function BoardColumn({
         {isCollapsed ? (
           <ContextMenu.Trigger
             onClick={onToggleCollapsed}
-            className={`flex w-10 cursor-pointer justify-center rounded-xl px-2 py-3 ${tint}`}
+            className={`flex w-10 justify-center rounded-xl px-2 py-3 ${tint}`}
             {...attributes}
             {...listeners}
           >
@@ -71,7 +70,7 @@ export function BoardColumn({
           </ContextMenu.Trigger>
         ) : (
           <ContextMenu.Trigger className={`flex max-h-full w-72 flex-col rounded-xl ${tint}`}>
-            <header className={`flex items-center gap-2 px-3 pt-3 pb-2 ${grab}`} {...attributes} {...listeners}>
+            <header className="flex items-center gap-2 px-3 pt-3 pb-2" {...attributes} {...listeners}>
               <div className="min-w-0 flex-1">
                 <ColumnTitle
                   title={column.title}
