@@ -3,7 +3,8 @@
   Demo page for README screenshots. Runs the real app with fake sessions instead of
   the Rust backend, so no real session titles end up in the screenshots.
   Used by scripts/screenshots.sh while `pnpm dev` is running.
-  ?menu opens a right-click menu, ?color also opens its Color submenu, ?noinbox empties the Inbox.
+  ?menu opens a right-click menu, ?color also opens its Color submenu, ?noinbox empties the Inbox,
+  ?collapsed collapses the Done column, ?colmenu right-clicks a column header.
 -->
 <html lang="en">
   <head>
@@ -33,6 +34,15 @@
         colors: { local_s3: "purple", local_s2: "blue", local_s6: "green", local_s9: "orange" },
         archivedIds: [],
       }
+      if (location.search.includes("collapsed")) board.columns[3].isCollapsed = true
+      if (location.search.includes("colmenu")) {
+        setTimeout(() => {
+          const header = document.querySelectorAll("section")[1].querySelector("header")
+          const rect = header.getBoundingClientRect()
+          const init = { bubbles: true, cancelable: true, clientX: rect.left + 60, clientY: rect.top + 15, button: 2 }
+          header.dispatchEvent(new MouseEvent("contextmenu", init))
+        }, 800)
+      }
       if (location.search.includes("noinbox")) board.columns[3].cardIds.push(...board.columns[0].cardIds.splice(0))
 
       window.__TAURI_INTERNALS__ = {
@@ -46,7 +56,7 @@
 
       if (location.search.includes("menu") || location.search.includes("color")) {
         setTimeout(() => {
-          const card = document.querySelectorAll("section")[1].querySelector("section > div > div > div")
+          const card = [...document.querySelectorAll("section div")].find((el) => el.textContent === "Migrate auth to passkeys")
           const rect = card.getBoundingClientRect()
           const init = { bubbles: true, cancelable: true, clientX: rect.left + 120, clientY: rect.top + 30, button: 2 }
           card.dispatchEvent(new MouseEvent("contextmenu", init))

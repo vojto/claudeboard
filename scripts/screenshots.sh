@@ -16,6 +16,6 @@ shoot() {
     --window-size=1560,480 --virtual-time-budget=3000 "$@" --screenshot="docs/$out" "$url" 2>&1 | grep written
 }
 
-shoot board-light.png "$URL"
+shoot board-light.png "$URL?collapsed"
 shoot board-dark.png "$URL" --force-dark-mode --blink-settings=preferredColorScheme=0
 shoot context-menu.png "$URL?color"

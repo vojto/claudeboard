@@ -18,10 +18,10 @@ import { useState } from "react"
 import { BoardColumn } from "../components/board-column"
 import { SessionCard, SessionCardBody } from "../components/session-card"
 import * as boards from "../lib/board"
-import type { Board } from "../lib/board"
+import type { Board, Column } from "../lib/board"
 import { openSession } from "../lib/claude"
 import { useBoard } from "../lib/use-board"
-import { useDelayedTrue } from "../lib/use-delayed-true"
+import { useInboxAutoCollapse } from "../lib/use-inbox-auto-collapse"
 
 /*
  * The only screen: the kanban board of Claude sessions.
@@ -29,16 +29,17 @@ import { useDelayedTrue } from "../lib/use-delayed-true"
  * and settle on drop (onDragEnd). Columns reorder by dragging their header.
  * Also handles adding, renaming and deleting columns, and archiving cards.
  * Only running sessions are shown; ended ones keep their spot but stay hidden.
- * The Inbox column hides when it has no cards, after a short delay so a drop animation can finish.
+ * Columns can collapse to a narrow pill. The Inbox collapses on its own when it runs out of cards.
  */
 
-/* While dragging a column, only look at other columns. While dragging a card, look at everything. */
+/* While dragging a column, only look at other columns. While dragging a card, skip collapsed columns. */
 const collisionDetection: CollisionDetection = (args) => {
   if (args.active.data.current?.type === "column") {
     const columns = args.droppableContainers.filter((container) => container.data.current?.type === "column")
     return closestCenter({ ...args, droppableContainers: columns })
   }
-  return closestCorners(args)
+  const targets = args.droppableContainers.filter((container) => !container.data.current?.isCollapsed)
+  return closestCorners({ ...args, droppableContainers: targets })
 }
 
 /* On drop, ease the dragged card's tilt back to 0° while it slides home, so it doesn't snap upright at the end. */
@@ -52,23 +53,23 @@ const dropAnimation: DropAnimation = {
   },
 }
 
-const INBOX_HIDE_DELAY_MS = 1000
-
 export function BoardScreen() {
-  const { board, setBoard, liveSessions } = useBoard()
+  const { board, setBoard, liveSessions, hasPolled } = useBoard()
   const [activeId, setActiveId] = useState<string | null>(null)
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   const inbox = board?.columns.find((column) => column.id === boards.INBOX_ID)
   const isInboxEmpty = !inbox?.cardIds.some((id) => liveSessions[id])
-  const isInboxHidden = useDelayedTrue(Boolean(board) && isInboxEmpty && !activeId, INBOX_HIDE_DELAY_MS)
-
-  if (!board) return null
+  useInboxAutoCollapse(isInboxEmpty, Boolean(board) && hasPolled, Boolean(activeId), (isCollapsed) =>
+    update((current) => boards.setColumnCollapsed(current, boards.INBOX_ID, isCollapsed)),
+  )
 
   function update(change: (board: Board) => Board) {
     setBoard((current) => current && change(current))
   }
+
+  if (!board) return null
 
   function handleDragStart({ active }: DragStartEvent) {
     setActiveId(String(active.id))
@@ -115,15 +116,21 @@ export function BoardScreen() {
     setEditingColumnId(id)
   }
 
+  function handleStartEditing(column: Column) {
+    if (column.isCollapsed) update((current) => boards.setColumnCollapsed(current, column.id, false))
+    setEditingColumnId(column.id)
+  }
+
   function handleFinishEditing(columnId: string, title: string | null) {
     setEditingColumnId(null)
     if (title) update((current) => boards.renameColumn(current, columnId, title))
   }
 
-  /* Only running sessions are shown. An empty Inbox hides, but never mid-drag so you can drop into it. */
-  const shownColumns = board.columns
-    .filter((column) => column.id !== boards.INBOX_ID || !isInboxHidden)
-    .map((column) => ({ column, visibleCardIds: column.cardIds.filter((id) => liveSessions[id]) }))
+  /* Only running sessions are shown. */
+  const shownColumns = board.columns.map((column) => ({
+    column,
+    visibleCardIds: column.cardIds.filter((id) => liveSessions[id]),
+  }))
 
   const activeColumn = board.columns.find((column) => column.id === activeId)
   const activeSession = activeId ? board.sessions[activeId] : undefined
@@ -147,8 +154,11 @@ export function BoardScreen() {
                   column={column}
                   visibleCardIds={visibleCardIds}
                   isEditingTitle={editingColumnId === column.id}
-                  onStartEditing={() => setEditingColumnId(column.id)}
+                  onStartEditing={() => handleStartEditing(column)}
                   onFinishEditing={(title) => handleFinishEditing(column.id, title)}
+                  onToggleCollapsed={() =>
+                    update((current) => boards.setColumnCollapsed(current, column.id, !column.isCollapsed))
+                  }
                   onDelete={() => update((current) => boards.deleteColumn(current, column.id))}
                 >
                   {visibleCardIds.map((id) => (

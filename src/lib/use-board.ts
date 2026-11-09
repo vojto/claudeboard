@@ -14,7 +14,8 @@ import { listSessions, loadBoard, saveBoard } from "./claude"
  * session files every 2 seconds, and writes the board back whenever it changes.
  * Each poll compares states with the previous poll, so a card that just became
  * busy jumps to the top of its column.
- * Returns the board (null while loading), a setter, and the live sessions by id.
+ * Returns the board (null while loading), a setter, the live sessions by id, and whether
+ * the first poll has come back (before that, every session looks ended).
  */
 
 const POLL_MS = 2000
@@ -22,6 +23,7 @@ const POLL_MS = 2000
 export function useBoard() {
   const [board, setBoard] = useState<Board | null>(null)
   const [liveSessions, setLiveSessions] = useState<Record<string, LiveSession>>({})
+  const [hasPolled, setHasPolled] = useState(false)
   const previousStates = useRef<Record<string, SessionStatus> | null>(null)
 
   useEffect(() => {
@@ -40,6 +42,7 @@ export function useBoard() {
       previousStates.current = states
 
       setLiveSessions(Object.fromEntries(sessions.map((session) => [session.id, session])))
+      setHasPolled(true)
       setBoard((current) => {
         if (!current) return current
         const merged = mergeLiveSessions(current, sessions)
@@ -57,5 +60,5 @@ export function useBoard() {
     if (json) saveBoard(json)
   }, [json])
 
-  return { board, setBoard, liveSessions }
+  return { board, setBoard, liveSessions, hasPolled }
 }

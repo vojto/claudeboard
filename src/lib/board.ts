@@ -16,7 +16,7 @@ export type SessionStatus = "busy" | "idle"
 export type KnownSession = { id: string; name: string; cwd: string }
 export type LiveSession = KnownSession & { status: SessionStatus }
 
-export type Column = { id: string; title: string; cardIds: string[] }
+export type Column = { id: string; title: string; cardIds: string[]; isCollapsed?: boolean }
 
 export type Board = {
   columns: Column[]
@@ -147,4 +147,11 @@ export function setCardColor(board: Board, cardId: string, color: CardColor | nu
   if (color) colors[cardId] = color
   else delete colors[cardId]
   return { ...board, colors }
+}
+
+export function setColumnCollapsed(board: Board, columnId: string, isCollapsed: boolean): Board {
+  return {
+    ...board,
+    columns: board.columns.map((column) => (column.id === columnId ? { ...column, isCollapsed } : column)),
+  }
 }

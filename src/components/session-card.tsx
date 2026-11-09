@@ -11,7 +11,7 @@ import { StateBadge } from "./state-badge"
  * One Claude session on the board. Shows its title, project and state.
  * For worktree sessions (…/project/.claude/worktrees/branch) the project is the main folder's name.
  * Draggable between columns. Right-click opens a menu with Open (in Claude), Color and Archive.
- * A picked color tints the card.
+ * A picked color tints the card. Right-clicks stop here so the column's menu doesn't open too.
  * Double-click also opens it. SessionCardBody is the plain look, reused for the drag overlay.
  */
 
@@ -35,6 +35,7 @@ export function SessionCard({ session, state, color, onOpen, onPickColor, onArch
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
       className={isDragging ? "opacity-30" : ""}
+      onContextMenu={(event) => event.stopPropagation()}
       {...attributes}
       {...listeners}
     >
