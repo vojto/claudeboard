@@ -21,6 +21,7 @@ import * as boards from "../lib/board"
 import type { Board } from "../lib/board"
 import { openSession } from "../lib/claude"
 import { useBoard } from "../lib/use-board"
+import { useDelayedTrue } from "../lib/use-delayed-true"
 
 /*
  * The only screen: the kanban board of Claude sessions.
@@ -28,7 +29,7 @@ import { useBoard } from "../lib/use-board"
  * and settle on drop (onDragEnd). Columns reorder by dragging their header.
  * Also handles adding, renaming and deleting columns, and archiving cards.
  * Only running sessions are shown; ended ones keep their spot but stay hidden.
- * The Inbox column hides when it has no cards.
+ * The Inbox column hides when it has no cards, after a short delay so a drop animation can finish.
  */
 
 /* While dragging a column, only look at other columns. While dragging a card, look at everything. */
@@ -51,11 +52,17 @@ const dropAnimation: DropAnimation = {
   },
 }
 
+const INBOX_HIDE_DELAY_MS = 1000
+
 export function BoardScreen() {
   const { board, setBoard, liveSessions } = useBoard()
   const [activeId, setActiveId] = useState<string | null>(null)
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+
+  const inbox = board?.columns.find((column) => column.id === boards.INBOX_ID)
+  const isInboxEmpty = !inbox?.cardIds.some((id) => liveSessions[id])
+  const isInboxHidden = useDelayedTrue(Boolean(board) && isInboxEmpty && !activeId, INBOX_HIDE_DELAY_MS)
 
   if (!board) return null
 
@@ -113,10 +120,10 @@ export function BoardScreen() {
     if (title) update((current) => boards.renameColumn(current, columnId, title))
   }
 
-  /* Only running sessions are shown. An empty Inbox hides, except mid-drag so you can drop into it. */
+  /* Only running sessions are shown. An empty Inbox hides, but never mid-drag so you can drop into it. */
   const shownColumns = board.columns
+    .filter((column) => column.id !== boards.INBOX_ID || !isInboxHidden)
     .map((column) => ({ column, visibleCardIds: column.cardIds.filter((id) => liveSessions[id]) }))
-    .filter(({ column, visibleCardIds }) => column.id !== boards.INBOX_ID || visibleCardIds.length > 0 || activeId)
 
   const activeColumn = board.columns.find((column) => column.id === activeId)
   const activeSession = activeId ? board.sessions[activeId] : undefined

@@ -16,9 +16,16 @@ A Tauri 2 + React + TypeScript + Tailwind app that shows the Claude desktop app'
 - Kebab-case file names, one component per file.
 - Menus and other UI primitives use base-ui. Drag and drop uses dnd-kit.
 
+## After every change
+
+Once a change is done and typechecks, without asking:
+
+1. Commit it on `main` and push.
+2. Deploy it (below).
+
 ## Deploy
 
-When asked to deploy, run:
+Run:
 
 ```bash
 scripts/deploy.sh
@@ -28,4 +35,4 @@ It builds the production app, quits the running Claudeboard, replaces `/Applicat
 
 ## Git
 
-The repo is public at github.com/vojto/claudeboard. Commit and push changes without asking.
+The repo is public at github.com/vojto/claudeboard. Work directly on `main`, no branches or PRs.
