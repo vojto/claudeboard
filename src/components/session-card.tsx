@@ -6,7 +6,8 @@ import { MenuItem, MenuPopup, MenuSeparator } from "../ui/menu"
 import { StateBadge } from "./state-badge"
 
 /*
- * One Claude session on the board. Shows its title, folder and state.
+ * One Claude session on the board. Shows its title, project and state.
+ * For worktree sessions (…/project/.claude/worktrees/branch) the project is the main folder's name.
  * Draggable between columns. Right-click opens a menu with Open (in Claude) and Archive.
  * Double-click also opens it. SessionCardBody is the plain look, reused for the drag overlay.
  */
@@ -51,13 +52,14 @@ export function SessionCard({ session, state, onOpen, onArchive }: Props) {
 }
 
 export function SessionCardBody({ session, state }: { session: KnownSession; state: SessionStatus }) {
-  const folder = session.cwd.split("/").filter(Boolean).pop() ?? session.cwd
+  const projectPath = session.cwd.split("/.claude/worktrees/")[0]
+  const project = projectPath.split("/").filter(Boolean).pop() ?? projectPath
   return (
     <div className="cursor-grab rounded-lg border border-zinc-200 bg-white p-3 shadow-xs select-none active:cursor-grabbing dark:border-zinc-700 dark:bg-zinc-800">
       <div className="line-clamp-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">{session.name}</div>
       <div className="mt-2 flex items-center justify-between gap-2">
         <span className="truncate text-xs text-zinc-500" title={session.cwd}>
-          {folder}
+          {project}
         </span>
         <StateBadge state={state} />
       </div>
