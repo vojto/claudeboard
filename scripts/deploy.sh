@@ -9,7 +9,10 @@ APP="/Applications/Claudeboard.app"
 
 pnpm tauri build --bundles app
 
-pkill -f "$APP/Contents/MacOS/" || true
+# Quit normally (not kill), so the app saves its window position first.
+if pgrep -f "$APP/Contents/MacOS/" >/dev/null; then
+  osascript -e 'tell application id "net.rinik.claudeboard" to quit'
+fi
 while pgrep -f "$APP/Contents/MacOS/" >/dev/null; do sleep 0.2; done
 
 rm -rf "$APP"

@@ -11,6 +11,7 @@
  *   (the Claude app's record has a scheduledTaskId) are left out.
  * - open_session: opens a session in Claude via the claude:// link.
  * - load_board / save_board: keep the board layout as JSON in the app data folder.
+ * The window-state plugin remembers the window's size and position between launches.
  */
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -178,6 +179,7 @@ fn save_board(app: tauri::AppHandle, json: String) -> Result<(), String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .invoke_handler(tauri::generate_handler![
             list_sessions,
             open_session,
