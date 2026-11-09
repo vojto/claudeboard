@@ -147,45 +147,38 @@ export function BoardScreen() {
       >
         <div className="flex flex-1 items-start gap-3 overflow-x-auto p-4">
           <SortableContext items={shownColumns.map(({ column }) => column.id)} strategy={horizontalListSortingStrategy}>
-            {shownColumns.map(({ column, visibleCardIds }) => {
-              return (
-                <BoardColumn
-                  key={column.id}
-                  column={column}
-                  visibleCardIds={visibleCardIds}
-                  isEditingTitle={editingColumnId === column.id}
-                  onStartEditing={() => handleStartEditing(column)}
-                  onFinishEditing={(title) => handleFinishEditing(column.id, title)}
-                  onToggleCollapsed={() =>
-                    update((current) => boards.setColumnCollapsed(current, column.id, !column.isCollapsed))
-                  }
-                  onDelete={() => update((current) => boards.deleteColumn(current, column.id))}
-                >
-                  {visibleCardIds.map((id) => (
-                    <SessionCard
-                      key={id}
-                      session={board.sessions[id] ?? liveSessions[id]}
-                      state={boards.cardState(board, id, liveSessions[id].status)}
-                      color={board.colors[id] ?? null}
-                      columns={board.columns}
-                      columnId={column.id}
-                      onOpen={() => {
-                        update((current) => boards.clearFinished(current, id))
-                        openSession(id)
-                      }}
-                      onMoveTo={(toColumnId) =>
-                        update((current) => {
-                          const toColumn = current.columns.find((other) => other.id === toColumnId)
-                          return boards.moveCard(current, id, toColumnId, toColumn?.cardIds[0])
-                        })
-                      }
-                      onPickColor={(color) => update((current) => boards.setCardColor(current, id, color))}
-                      onArchive={() => update((current) => boards.archiveCard(current, id))}
-                    />
-                  ))}
-                </BoardColumn>
-              )
-            })}
+            {shownColumns.map(({ column, visibleCardIds }) => (
+              <BoardColumn
+                key={column.id}
+                column={column}
+                visibleCardIds={visibleCardIds}
+                isEditingTitle={editingColumnId === column.id}
+                onStartEditing={() => handleStartEditing(column)}
+                onFinishEditing={(title) => handleFinishEditing(column.id, title)}
+                onToggleCollapsed={() =>
+                  update((current) => boards.setColumnCollapsed(current, column.id, !column.isCollapsed))
+                }
+                onDelete={() => update((current) => boards.deleteColumn(current, column.id))}
+              >
+                {visibleCardIds.map((id) => (
+                  <SessionCard
+                    key={id}
+                    session={board.sessions[id] ?? liveSessions[id]}
+                    state={boards.cardState(board, id, liveSessions[id].status)}
+                    color={board.colors[id] ?? null}
+                    columns={board.columns}
+                    columnId={column.id}
+                    onOpen={() => {
+                      update((current) => boards.clearFinished(current, id))
+                      openSession(id)
+                    }}
+                    onMoveTo={(toColumnId) => update((current) => boards.moveCardToTop(current, id, toColumnId))}
+                    onPickColor={(color) => update((current) => boards.setCardColor(current, id, color))}
+                    onArchive={() => update((current) => boards.archiveCard(current, id))}
+                  />
+                ))}
+              </BoardColumn>
+            ))}
           </SortableContext>
 
           <button

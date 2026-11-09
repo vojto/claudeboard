@@ -118,11 +118,15 @@ export function addColumn(board: Board, id: string, title: string): Board {
   return { ...board, columns: [...board.columns, { id, title, cardIds: [] }] }
 }
 
-export function renameColumn(board: Board, columnId: string, title: string): Board {
+function updateColumn(board: Board, columnId: string, change: Partial<Column>): Board {
   return {
     ...board,
-    columns: board.columns.map((column) => (column.id === columnId ? { ...column, title } : column)),
+    columns: board.columns.map((column) => (column.id === columnId ? { ...column, ...change } : column)),
   }
+}
+
+export function renameColumn(board: Board, columnId: string, title: string): Board {
+  return updateColumn(board, columnId, { title })
 }
 
 /* Deletes a column. Its cards go back to the Inbox so nothing gets lost. */
@@ -163,6 +167,11 @@ export function moveCard(board: Board, cardId: string, toColumnId: string, befor
   return { ...board, columns }
 }
 
+export function moveCardToTop(board: Board, cardId: string, toColumnId: string): Board {
+  const toColumn = board.columns.find((column) => column.id === toColumnId)
+  return moveCard(board, cardId, toColumnId, toColumn?.cardIds[0])
+}
+
 /* Moves a column to where `overId` is. The Inbox always stays first. */
 export function moveColumn(board: Board, columnId: string, overId: string): Board {
   if (columnId === INBOX_ID || overId === INBOX_ID) return board
@@ -184,8 +193,5 @@ export function setCardColor(board: Board, cardId: string, color: CardColor | nu
 }
 
 export function setColumnCollapsed(board: Board, columnId: string, isCollapsed: boolean): Board {
-  return {
-    ...board,
-    columns: board.columns.map((column) => (column.id === columnId ? { ...column, isCollapsed } : column)),
-  }
+  return updateColumn(board, columnId, { isCollapsed })
 }
