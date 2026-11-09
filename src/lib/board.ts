@@ -11,7 +11,7 @@ import type { CardColor } from "./colors"
 
 export const INBOX_ID = "inbox"
 
-export type SessionStatus = "busy" | "idle"
+export type SessionStatus = "busy" | "idle" | "waiting"
 
 export type KnownSession = { id: string; name: string; cwd: string }
 export type LiveSession = KnownSession & { status: SessionStatus }
@@ -61,16 +61,21 @@ export function mergeLiveSessions(board: Board, live: LiveSession[]): Board {
   return { ...board, sessions, columns }
 }
 
-/* Moves cards that just became busy to the top of their column. Everything else keeps the user's order. */
-export function moveNewlyBusyToTop(
+/*
+ * Moves cards that just started working, or just started waiting for you, to the top of their
+ * column. Going from waiting back to busy doesn't move it again. Everything else keeps the user's order.
+ */
+export function moveNewlyActiveToTop(
   board: Board,
   before: Record<string, SessionStatus>,
   after: Record<string, SessionStatus>,
 ): Board {
-  const isNewlyBusy = (id: string) => after[id] === "busy" && before[id] !== "busy"
+  const isNewlyActive = (id: string) =>
+    (after[id] === "waiting" && before[id] !== "waiting") ||
+    (after[id] === "busy" && before[id] !== "busy" && before[id] !== "waiting")
   const columns = board.columns.map((column) => ({
     ...column,
-    cardIds: [...column.cardIds.filter(isNewlyBusy), ...column.cardIds.filter((id) => !isNewlyBusy(id))],
+    cardIds: [...column.cardIds.filter(isNewlyActive), ...column.cardIds.filter((id) => !isNewlyActive(id))],
   }))
   return { ...board, columns }
 }

@@ -3,7 +3,7 @@ import {
   type Board,
   type LiveSession,
   mergeLiveSessions,
-  moveNewlyBusyToTop,
+  moveNewlyActiveToTop,
   parseBoard,
   type SessionStatus,
 } from "./board"
@@ -46,7 +46,7 @@ export function useBoard() {
       setBoard((current) => {
         if (!current) return current
         const merged = mergeLiveSessions(current, sessions)
-        return before ? moveNewlyBusyToTop(merged, before, states) : merged
+        return before ? moveNewlyActiveToTop(merged, before, states) : merged
       })
     }
 

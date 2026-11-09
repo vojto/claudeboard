@@ -2,6 +2,8 @@
  * Backend for Claudeboard. The React board calls these commands.
  * - list_sessions: reads ~/.claude/sessions/<pid>.json and keeps only sessions whose
  *   process is still alive and that belong to the Claude desktop app (have a hostSessionId).
+ *   A session is "waiting" when the Claudeboard hook left a mark for it in
+ *   ~/.claude/claudeboard/waiting/<sessionId> (see hooks/claudeboard-hook.sh).
  * - open_session: opens a session in Claude via the claude:// link.
  * - load_board / save_board: keep the board layout as JSON in the app data folder.
  */
@@ -15,6 +17,7 @@ use tauri::Manager;
 #[serde(rename_all = "camelCase")]
 struct SessionFile {
     pid: i32,
+    session_id: Option<String>,
     host_session_id: Option<String>,
     name: Option<String>,
     cwd: Option<String>,
@@ -29,9 +32,14 @@ struct Session {
     status: String,
 }
 
-fn sessions_dir() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_default();
-    PathBuf::from(home).join(".claude/sessions")
+fn claude_dir() -> PathBuf {
+    PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".claude")
+}
+
+fn is_waiting(session_id: &Option<String>) -> bool {
+    session_id
+        .as_ref()
+        .is_some_and(|id| claude_dir().join("claudeboard/waiting").join(id).exists())
 }
 
 fn is_process_alive(pid: i32) -> bool {
@@ -40,7 +48,7 @@ fn is_process_alive(pid: i32) -> bool {
 
 #[tauri::command]
 fn list_sessions() -> Vec<Session> {
-    let Ok(entries) = fs::read_dir(sessions_dir()) else {
+    let Ok(entries) = fs::read_dir(claude_dir().join("sessions")) else {
         return vec![];
     };
 
@@ -51,11 +59,16 @@ fn list_sessions() -> Vec<Session> {
         .filter_map(|text| serde_json::from_str::<SessionFile>(&text).ok())
         .filter(|file| is_process_alive(file.pid))
         .filter_map(|file| {
+            let status = if is_waiting(&file.session_id) {
+                "waiting".into()
+            } else {
+                file.status.unwrap_or_else(|| "idle".into())
+            };
             Some(Session {
                 id: file.host_session_id?,
                 name: file.name.unwrap_or_else(|| "Untitled".into()),
                 cwd: file.cwd.unwrap_or_default(),
-                status: file.status.unwrap_or_else(|| "idle".into()),
+                status,
             })
         })
         .collect()
