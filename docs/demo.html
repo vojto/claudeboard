@@ -2,7 +2,8 @@
 <!--
   Demo page for README screenshots. Runs the real app with fake sessions instead of
   the Rust backend, so no real session titles end up in the screenshots.
-  Used by scripts/screenshots.sh while `pnpm dev` is running. Add ?menu to open a right-click menu.
+  Used by scripts/screenshots.sh while `pnpm dev` is running.
+  ?menu opens a right-click menu, ?color also opens its Color submenu, ?noinbox empties the Inbox.
 -->
 <html lang="en">
   <head>
@@ -29,8 +30,10 @@
           { id: "col_c", title: "Done", cardIds: ["local_s7", "local_s9"] },
         ],
         sessions: Object.fromEntries(sessions.map(({ id, name, cwd }) => [id, { id, name, cwd }])),
+        colors: { local_s3: "purple", local_s2: "blue", local_s6: "green", local_s9: "orange" },
         archivedIds: [],
       }
+      if (location.search.includes("noinbox")) board.columns[3].cardIds.push(...board.columns[0].cardIds.splice(0))
 
       window.__TAURI_INTERNALS__ = {
         transformCallback: () => 0,
@@ -41,12 +44,18 @@
         },
       }
 
-      if (location.search.includes("menu")) {
+      if (location.search.includes("menu") || location.search.includes("color")) {
         setTimeout(() => {
           const card = document.querySelectorAll("section")[1].querySelector("section > div > div > div")
           const rect = card.getBoundingClientRect()
           const init = { bubbles: true, cancelable: true, clientX: rect.left + 120, clientY: rect.top + 30, button: 2 }
           card.dispatchEvent(new MouseEvent("contextmenu", init))
+          if (location.search.includes("color")) {
+            setTimeout(() => {
+              const trigger = [...document.querySelectorAll("[role=menuitem]")].find((el) => el.textContent.startsWith("Color"))
+              trigger.click()
+            }, 300)
+          }
         }, 800)
       }
     </script>

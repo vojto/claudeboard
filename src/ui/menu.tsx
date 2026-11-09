@@ -3,7 +3,7 @@ import type { ComponentProps } from "react"
 
 /*
  * Shared look for every menu in the app (right-click menus and "…" menus).
- * Wraps base-ui's Menu.Popup, Menu.Item and Menu.Separator with Tailwind styles.
+ * Wraps base-ui's Menu.Popup, Menu.Item, Menu.SubmenuTrigger and Menu.Separator with Tailwind styles.
  * These parts work inside both <Menu.Root> and <ContextMenu.Root>.
  */
 
@@ -29,6 +29,18 @@ export function MenuItem({
       className={`flex cursor-default items-center rounded-md px-2.5 py-1.5 outline-none select-none ${color} ${className}`}
       {...props}
     />
+  )
+}
+
+export function MenuSubmenuTrigger({ children, ...props }: ComponentProps<typeof Menu.SubmenuTrigger>) {
+  return (
+    <Menu.SubmenuTrigger
+      className="flex cursor-default items-center justify-between gap-4 rounded-md px-2.5 py-1.5 text-zinc-800 outline-none select-none data-highlighted:bg-zinc-100 data-popup-open:bg-zinc-100 dark:text-zinc-100 dark:data-highlighted:bg-zinc-700 dark:data-popup-open:bg-zinc-700"
+      {...props}
+    >
+      {children}
+      <span className="text-xs text-zinc-400">▸</span>
+    </Menu.SubmenuTrigger>
   )
 }
 

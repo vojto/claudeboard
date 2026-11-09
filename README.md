@@ -8,15 +8,15 @@ Every running Claude Code session shows up as a card. You make the columns and d
 
 ## What it does
 
-- **Live sessions.** Reads `~/.claude/sessions` every 2 seconds. New sessions land in the **Inbox**.
+- **Live sessions.** Reads `~/.claude/sessions` every 2 seconds. New sessions land in the **Inbox** (the blue column). It hides when it's empty.
 - **Live state.** Each card shows **Busy** or **Idle**.
 - **Busy goes to the top.** A card that turns busy jumps to the top of its column. Otherwise your order stays.
 - **Ended sessions hide.** When a session's process exits, its card disappears. If the session starts again, the card comes back in the same spot.
 - **Your own columns.** Add, rename, reorder and delete columns. Deleting a column moves its cards back to the Inbox.
-- **Right-click a card** to open it in Claude, or archive it. Double-click also opens it.
+- **Right-click a card** to open it in Claude, give it a color, or archive it. Double-click also opens it.
 - **Archive** only hides the card in Claudeboard. It doesn't touch the session in Claude.
 
-![Right-click menu](docs/context-menu.png)
+![Right-click menu with the Color submenu](docs/context-menu.png)
 
 Dark mode follows your system:
 

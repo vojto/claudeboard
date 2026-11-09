@@ -18,4 +18,4 @@ shoot() {
 
 shoot board-light.png "$URL"
 shoot board-dark.png "$URL" --force-dark-mode --blink-settings=preferredColorScheme=0
-shoot context-menu.png "$URL?menu"
+shoot context-menu.png "$URL?color"

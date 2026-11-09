@@ -7,6 +7,7 @@ import { ColumnTitle } from "./column-title"
 
 /*
  * One column of the board. Drag it by its header to reorder columns (the Inbox stays put).
+ * The Inbox gets a light blue tint so it stands apart from the user's own columns.
  * The body is a drop zone for cards; the cards themselves are passed in as children.
  * visibleCardIds are the cards actually shown (running sessions), used for sorting and the count.
  */
@@ -41,7 +42,7 @@ export function BoardColumn({
     <section
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={`flex max-h-full w-72 shrink-0 flex-col rounded-xl bg-zinc-100 dark:bg-zinc-900 ${isDragging ? "opacity-40" : ""}`}
+      className={`flex max-h-full w-72 shrink-0 flex-col rounded-xl ${isInbox ? "bg-blue-50 dark:bg-blue-950/40" : "bg-zinc-100 dark:bg-zinc-900"} ${isDragging ? "opacity-40" : ""}`}
     >
       <header
         className={`flex items-center gap-2 px-3 pt-3 pb-2 ${isInbox ? "" : "cursor-grab active:cursor-grabbing"}`}

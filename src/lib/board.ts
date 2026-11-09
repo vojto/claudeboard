@@ -1,7 +1,10 @@
+import type { CardColor } from "./colors"
+
 /*
  * The board's data model and the pure functions that change it.
  * A board is a list of columns, each holding session ids in order. The board also
- * remembers every session it has seen (name, folder) and which ones the user archived.
+ * remembers every session it has seen (name, folder), the color the user gave each card,
+ * and which ones the user archived.
  * Ended sessions stay in their column here but aren't shown, so if a session starts
  * again its card comes back where it was.
  */
@@ -18,6 +21,7 @@ export type Column = { id: string; title: string; cardIds: string[] }
 export type Board = {
   columns: Column[]
   sessions: Record<string, KnownSession>
+  colors: Record<string, CardColor>
   archivedIds: string[]
 }
 
@@ -25,6 +29,7 @@ export function emptyBoard(): Board {
   return {
     columns: [{ id: INBOX_ID, title: "Inbox", cardIds: [] }],
     sessions: {},
+    colors: {},
     archivedIds: [],
   }
 }
@@ -32,7 +37,7 @@ export function emptyBoard(): Board {
 export function parseBoard(json: string | null): Board {
   if (!json) return emptyBoard()
   try {
-    return JSON.parse(json) as Board
+    return { ...emptyBoard(), ...JSON.parse(json) }
   } catch {
     return emptyBoard()
   }
@@ -135,4 +140,11 @@ export function moveColumn(board: Board, columnId: string, overId: string): Boar
   const [moved] = columns.splice(from, 1)
   columns.splice(to, 0, moved)
   return { ...board, columns }
+}
+
+export function setCardColor(board: Board, cardId: string, color: CardColor | null): Board {
+  const colors = { ...board.colors }
+  if (color) colors[cardId] = color
+  else delete colors[cardId]
+  return { ...board, colors }
 }

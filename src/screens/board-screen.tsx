@@ -28,6 +28,7 @@ import { useBoard } from "../lib/use-board"
  * and settle on drop (onDragEnd). Columns reorder by dragging their header.
  * Also handles adding, renaming and deleting columns, and archiving cards.
  * Only running sessions are shown; ended ones keep their spot but stay hidden.
+ * The Inbox column hides when it has no cards.
  */
 
 /* While dragging a column, only look at other columns. While dragging a card, look at everything. */
@@ -112,6 +113,11 @@ export function BoardScreen() {
     if (title) update((current) => boards.renameColumn(current, columnId, title))
   }
 
+  /* Only running sessions are shown. An empty Inbox hides, except mid-drag so you can drop into it. */
+  const shownColumns = board.columns
+    .map((column) => ({ column, visibleCardIds: column.cardIds.filter((id) => liveSessions[id]) }))
+    .filter(({ column, visibleCardIds }) => column.id !== boards.INBOX_ID || visibleCardIds.length > 0 || activeId)
+
   const activeColumn = board.columns.find((column) => column.id === activeId)
   const activeSession = activeId ? board.sessions[activeId] : undefined
 
@@ -126,9 +132,8 @@ export function BoardScreen() {
         onDragCancel={() => setActiveId(null)}
       >
         <div className="flex flex-1 items-start gap-3 overflow-x-auto p-4">
-          <SortableContext items={board.columns.map((column) => column.id)} strategy={horizontalListSortingStrategy}>
-            {board.columns.map((column) => {
-              const visibleCardIds = column.cardIds.filter((id) => liveSessions[id])
+          <SortableContext items={shownColumns.map(({ column }) => column.id)} strategy={horizontalListSortingStrategy}>
+            {shownColumns.map(({ column, visibleCardIds }) => {
               return (
                 <BoardColumn
                   key={column.id}
@@ -144,7 +149,9 @@ export function BoardScreen() {
                       key={id}
                       session={board.sessions[id] ?? liveSessions[id]}
                       state={liveSessions[id].status}
+                      color={board.colors[id] ?? null}
                       onOpen={() => openSession(id)}
+                      onPickColor={(color) => update((current) => boards.setCardColor(current, id, color))}
                       onArchive={() => update((current) => boards.archiveCard(current, id))}
                     />
                   ))}
@@ -164,7 +171,11 @@ export function BoardScreen() {
         <DragOverlay dropAnimation={dropAnimation}>
           {activeSession && (
             <div data-tilt className="rotate-2">
-              <SessionCardBody session={activeSession} state={liveSessions[activeSession.id]?.status ?? "idle"} />
+              <SessionCardBody
+                session={activeSession}
+                state={liveSessions[activeSession.id]?.status ?? "idle"}
+                color={board.colors[activeSession.id] ?? null}
+              />
             </div>
           )}
           {activeColumn && (
