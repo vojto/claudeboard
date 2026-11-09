@@ -7,7 +7,8 @@
  *   An idle session is "merged" when the Claude app's own record of it
  *   (~/Library/Application Support/Claude/claude-code-sessions/<account>/<org>/<hostSessionId>.json)
  *   lists a merged pull request and none that are still open.
- *   Sessions named "btw…" (side questions) are left out.
+ *   Sessions named "btw…" (side questions) and sessions started by a scheduled task
+ *   (the Claude app's record has a scheduledTaskId) are left out.
  * - open_session: opens a session in Claude via the claude:// link.
  * - load_board / save_board: keep the board layout as JSON in the app data folder.
  */
@@ -47,8 +48,10 @@ fn is_waiting(session_id: &Option<String>) -> bool {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct DesktopSession {
     prs: Option<Vec<PullRequest>>,
+    scheduled_task_id: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -69,13 +72,13 @@ fn desktop_session_path(host_session_id: &str) -> Option<PathBuf> {
         .find(|path| path.exists())
 }
 
-fn is_pr_merged(host_session_id: &str) -> bool {
-    let Some(text) =
-        desktop_session_path(host_session_id).and_then(|path| fs::read_to_string(path).ok())
-    else {
-        return false;
-    };
-    let Ok(session) = serde_json::from_str::<DesktopSession>(&text) else {
+fn load_desktop_session(host_session_id: &str) -> Option<DesktopSession> {
+    let text = fs::read_to_string(desktop_session_path(host_session_id)?).ok()?;
+    serde_json::from_str(&text).ok()
+}
+
+fn is_pr_merged(session: Option<DesktopSession>) -> bool {
+    let Some(session) = session else {
         return false;
     };
     let states: Vec<String> = session
@@ -112,10 +115,17 @@ fn list_sessions() -> Vec<Session> {
         .filter(|file| !is_btw(&file.name))
         .filter_map(|file| {
             let id = file.host_session_id?;
+            let desktop = load_desktop_session(&id);
+            if desktop
+                .as_ref()
+                .is_some_and(|session| session.scheduled_task_id.is_some())
+            {
+                return None;
+            }
             let status = file.status.unwrap_or_else(|| "idle".into());
             let status = if is_waiting(&file.session_id) {
                 "waiting".into()
-            } else if status == "idle" && is_pr_merged(&id) {
+            } else if status == "idle" && is_pr_merged(desktop) {
                 "merged".into()
             } else {
                 status
