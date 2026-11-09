@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Open Claude session</title>
+    <style>
+      body {
+        font: 16px -apple-system, system-ui, sans-serif;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        margin: 0;
+        background: #faf9f5;
+        color: #222;
+      }
+      a {
+        color: #c96442;
+      }
+    </style>
+  </head>
+  <body>
+    <p id="message">Opening session…</p>
+    <script>
+      // Telegram only allows http(s) links, so messages link here and we
+      // forward to the claude:// link that opens the session in Claude.
+      const session = new URLSearchParams(location.search).get("session") || ""
+      const message = document.getElementById("message")
+      if (/^local_[0-9a-f-]+$/.test(session)) {
+        const url = `claude://code/continue?session=${session}`
+        message.innerHTML = `Opening session… <a href="${url}">Click here</a> if nothing happens.`
+        location.href = url
+      } else {
+        message.textContent = "Missing or invalid session id."
+      }
+    </script>
+  </body>
+</html>
