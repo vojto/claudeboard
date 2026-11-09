@@ -58,7 +58,7 @@ export function BoardColumn({
         {isCollapsed ? (
           <ContextMenu.Trigger
             onClick={onToggleCollapsed}
-            className={`flex w-10 cursor-pointer justify-center rounded-xl px-2 py-3 hover:brightness-95 dark:hover:brightness-125 ${tint}`}
+            className={`flex w-10 cursor-pointer justify-center rounded-xl px-2 py-3 ${tint}`}
             {...attributes}
             {...listeners}
           >
