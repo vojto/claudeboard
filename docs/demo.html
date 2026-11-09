@@ -11,6 +11,7 @@
     <meta charset="UTF-8" />
     <title>Claudeboard demo</title>
     <script>
+      const params = new URLSearchParams(location.search)
       const sessions = [
         ["s1", "Add dark mode to settings page", "/Users/me/Code/acme-web", "busy"],
         ["s2", "Fix flaky checkout test", "/Users/me/Code/acme-web", "idle"],
@@ -34,8 +35,8 @@
         colors: { local_s3: "purple", local_s2: "blue", local_s6: "green", local_s9: "orange" },
         archivedIds: [],
       }
-      if (location.search.includes("collapsed")) board.columns[3].isCollapsed = true
-      if (location.search.includes("colmenu")) {
+      if (params.has("collapsed")) board.columns[3].isCollapsed = true
+      if (params.has("colmenu")) {
         setTimeout(() => {
           const header = document.querySelectorAll("section")[1].querySelector("header")
           const rect = header.getBoundingClientRect()
@@ -43,7 +44,7 @@
           header.dispatchEvent(new MouseEvent("contextmenu", init))
         }, 800)
       }
-      if (location.search.includes("noinbox")) board.columns[3].cardIds.push(...board.columns[0].cardIds.splice(0))
+      if (params.has("noinbox")) board.columns[3].cardIds.push(...board.columns[0].cardIds.splice(0))
 
       window.__TAURI_INTERNALS__ = {
         transformCallback: () => 0,
@@ -54,13 +55,13 @@
         },
       }
 
-      if (location.search.includes("menu") || location.search.includes("color")) {
+      if (params.has("menu") || params.has("color")) {
         setTimeout(() => {
           const card = [...document.querySelectorAll("section div")].find((el) => el.textContent === "Migrate auth to passkeys")
           const rect = card.getBoundingClientRect()
           const init = { bubbles: true, cancelable: true, clientX: rect.left + 120, clientY: rect.top + 30, button: 2 }
           card.dispatchEvent(new MouseEvent("contextmenu", init))
-          if (location.search.includes("color")) {
+          if (params.has("color")) {
             setTimeout(() => {
               const trigger = [...document.querySelectorAll("[role=menuitem]")].find((el) => el.textContent.startsWith("Color"))
               trigger.click()

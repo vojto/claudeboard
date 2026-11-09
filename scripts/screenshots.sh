@@ -19,3 +19,4 @@ shoot() {
 shoot board-light.png "$URL?collapsed"
 shoot board-dark.png "$URL" --force-dark-mode --blink-settings=preferredColorScheme=0
 shoot context-menu.png "$URL?color"
+shoot column-menu.png "$URL?colmenu&collapsed"

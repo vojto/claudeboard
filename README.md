@@ -19,6 +19,10 @@ Every running Claude Code session shows up as a card. You make the columns and d
 
 ![Right-click menu with the Color submenu](docs/context-menu.png)
 
+Right-click a column to collapse, rename or delete it:
+
+![Column menu](docs/column-menu.png)
+
 Dark mode follows your system:
 
 ![Dark mode](docs/board-dark.png)
