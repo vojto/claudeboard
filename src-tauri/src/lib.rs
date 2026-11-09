@@ -7,6 +7,7 @@
  *   An idle session is "merged" when the Claude app's own record of it
  *   (~/Library/Application Support/Claude/claude-code-sessions/<account>/<org>/<hostSessionId>.json)
  *   lists a merged pull request and none that are still open.
+ *   Sessions named "btw…" (side questions) are left out.
  * - open_session: opens a session in Claude via the claude:// link.
  * - load_board / save_board: keep the board layout as JSON in the app data folder.
  */
@@ -90,6 +91,12 @@ fn is_process_alive(pid: i32) -> bool {
     unsafe { libc::kill(pid, 0) == 0 }
 }
 
+/* Side questions asked with /btw get their own short sessions. They don't belong on the board. */
+fn is_btw(name: &Option<String>) -> bool {
+    name.as_ref()
+        .is_some_and(|name| name.to_lowercase().starts_with("btw"))
+}
+
 #[tauri::command]
 fn list_sessions() -> Vec<Session> {
     let Ok(entries) = fs::read_dir(claude_dir().join("sessions")) else {
@@ -102,6 +109,7 @@ fn list_sessions() -> Vec<Session> {
         .filter_map(|entry| fs::read_to_string(entry.path()).ok())
         .filter_map(|text| serde_json::from_str::<SessionFile>(&text).ok())
         .filter(|file| is_process_alive(file.pid))
+        .filter(|file| !is_btw(&file.name))
         .filter_map(|file| {
             let id = file.host_session_id?;
             let status = file.status.unwrap_or_else(|| "idle".into());

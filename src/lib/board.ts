@@ -12,6 +12,8 @@ import type { CardColor } from "./colors"
 export const INBOX_ID = "inbox"
 
 export type SessionStatus = "busy" | "idle" | "waiting" | "merged"
+/* What a card shows: the live status, or "finished" for a session that just finished and wasn't opened yet. */
+export type CardState = SessionStatus | "finished"
 
 export type KnownSession = { id: string; name: string; cwd: string }
 export type LiveSession = KnownSession & { status: SessionStatus }
@@ -23,6 +25,7 @@ export type Board = {
   sessions: Record<string, KnownSession>
   colors: Record<string, CardColor>
   archivedIds: string[]
+  finishedIds: string[]
 }
 
 export function emptyBoard(): Board {
@@ -31,6 +34,7 @@ export function emptyBoard(): Board {
     sessions: {},
     colors: {},
     archivedIds: [],
+    finishedIds: [],
   }
 }
 
@@ -78,6 +82,31 @@ export function moveNewlyActiveToTop(
     cardIds: [...column.cardIds.filter(isNewlyActive), ...column.cardIds.filter((id) => !isNewlyActive(id))],
   }))
   return { ...board, columns }
+}
+
+/*
+ * Marks cards that just went from busy to idle or merged as finished, so they stand out.
+ * A card stops being finished when it gets busy or needs you again, or when the user opens it.
+ */
+export function markNewlyFinished(
+  board: Board,
+  before: Record<string, SessionStatus>,
+  after: Record<string, SessionStatus>,
+): Board {
+  const isNewlyFinished = (id: string) => before[id] === "busy" && (after[id] === "idle" || after[id] === "merged")
+  const isActive = (id: string) => after[id] === "busy" || after[id] === "waiting"
+  const kept = board.finishedIds.filter((id) => !isActive(id))
+  const added = Object.keys(after).filter((id) => isNewlyFinished(id) && !kept.includes(id))
+  if (added.length === 0 && kept.length === board.finishedIds.length) return board
+  return { ...board, finishedIds: [...kept, ...added] }
+}
+
+export function clearFinished(board: Board, cardId: string): Board {
+  return { ...board, finishedIds: board.finishedIds.filter((id) => id !== cardId) }
+}
+
+export function cardState(board: Board, id: string, status: SessionStatus): CardState {
+  return board.finishedIds.includes(id) ? "finished" : status
 }
 
 export function findColumnId(board: Board, id: string): string | undefined {

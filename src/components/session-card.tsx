@@ -1,7 +1,7 @@
 import { ContextMenu } from "@base-ui/react/context-menu"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import type { Column, KnownSession, SessionStatus } from "../lib/board"
+import type { CardState, Column, KnownSession } from "../lib/board"
 import { type CardColor, COLOR_STYLES, DEFAULT_CARD_STYLE } from "../lib/colors"
 import { MenuItem, MenuPopup, MenuSeparator } from "../ui/menu"
 import { ColorSubmenu } from "./color-submenu"
@@ -18,7 +18,7 @@ import { StateBadge } from "./state-badge"
 
 type Props = {
   session: KnownSession
-  state: SessionStatus
+  state: CardState
   color: CardColor | null
   columns: Column[]
   columnId: string
@@ -73,7 +73,7 @@ export function SessionCard({
   )
 }
 
-type BodyProps = { session: KnownSession; state: SessionStatus; color: CardColor | null }
+type BodyProps = { session: KnownSession; state: CardState; color: CardColor | null }
 
 export function SessionCardBody({ session, state, color }: BodyProps) {
   const projectPath = session.cwd.split("/.claude/worktrees/")[0]

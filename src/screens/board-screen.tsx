@@ -165,11 +165,14 @@ export function BoardScreen() {
                     <SessionCard
                       key={id}
                       session={board.sessions[id] ?? liveSessions[id]}
-                      state={liveSessions[id].status}
+                      state={boards.cardState(board, id, liveSessions[id].status)}
                       color={board.colors[id] ?? null}
                       columns={board.columns}
                       columnId={column.id}
-                      onOpen={() => openSession(id)}
+                      onOpen={() => {
+                        update((current) => boards.clearFinished(current, id))
+                        openSession(id)
+                      }}
                       onMoveTo={(toColumnId) =>
                         update((current) => {
                           const toColumn = current.columns.find((other) => other.id === toColumnId)
@@ -198,7 +201,7 @@ export function BoardScreen() {
             <div data-tilt className="rotate-2">
               <SessionCardBody
                 session={activeSession}
-                state={liveSessions[activeSession.id]?.status ?? "idle"}
+                state={boards.cardState(board, activeSession.id, liveSessions[activeSession.id]?.status ?? "idle")}
                 color={board.colors[activeSession.id] ?? null}
               />
             </div>
