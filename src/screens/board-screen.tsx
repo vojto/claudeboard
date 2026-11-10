@@ -172,6 +172,7 @@ export function BoardScreen() {
                       update((current) => boards.clearFinished(current, id))
                       openSession(id)
                     }}
+                    onDismissFinished={() => update((current) => boards.clearFinished(current, id))}
                     onMoveTo={(toColumnId) => update((current) => boards.moveCardToTop(current, id, toColumnId))}
                     onPickColor={(color) => update((current) => boards.setCardColor(current, id, color))}
                     onArchive={() => update((current) => boards.archiveCard(current, id))}

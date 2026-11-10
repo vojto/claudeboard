@@ -13,7 +13,7 @@ import { StateBadge } from "./state-badge"
  * For worktree sessions (…/project/.claude/worktrees/branch) the project is the main folder's name.
  * Draggable between columns. Right-click opens a menu with Open (in Claude), Move to, Color and Archive.
  * A picked color tints the card. Right-clicks stop here so the column's menu doesn't open too.
- * Clicking the title text or double-clicking the card also opens it. SessionCardBody is the plain look, reused for the drag overlay.
+ * Clicking the title text or double-clicking the card also opens it. Clicking a Finished badge just clears it. SessionCardBody is the plain look, reused for the drag overlay.
  */
 
 type Props = {
@@ -23,6 +23,7 @@ type Props = {
   columns: Column[]
   columnId: string
   onOpen: () => void
+  onDismissFinished: () => void
   onMoveTo: (columnId: string) => void
   onPickColor: (color: CardColor | null) => void
   onArchive: () => void
@@ -35,6 +36,7 @@ export function SessionCard({
   columns,
   columnId,
   onOpen,
+  onDismissFinished,
   onMoveTo,
   onPickColor,
   onArchive,
@@ -55,7 +57,13 @@ export function SessionCard({
     >
       <ContextMenu.Root>
         <ContextMenu.Trigger onDoubleClick={onOpen}>
-          <SessionCardBody session={session} state={state} color={color} onOpen={onOpen} />
+          <SessionCardBody
+            session={session}
+            state={state}
+            color={color}
+            onOpen={onOpen}
+            onDismissFinished={onDismissFinished}
+          />
         </ContextMenu.Trigger>
         <ContextMenu.Portal>
           <ContextMenu.Positioner className="z-50">
@@ -73,9 +81,15 @@ export function SessionCard({
   )
 }
 
-type BodyProps = { session: KnownSession; state: CardState; color: CardColor | null; onOpen?: () => void }
+type BodyProps = {
+  session: KnownSession
+  state: CardState
+  color: CardColor | null
+  onOpen?: () => void
+  onDismissFinished?: () => void
+}
 
-export function SessionCardBody({ session, state, color, onOpen }: BodyProps) {
+export function SessionCardBody({ session, state, color, onOpen, onDismissFinished }: BodyProps) {
   const projectPath = session.cwd.split("/.claude/worktrees/")[0]
   const project = projectPath.split("/").filter(Boolean).pop() ?? projectPath
   return (
@@ -91,7 +105,7 @@ export function SessionCardBody({ session, state, color, onOpen }: BodyProps) {
         <span className="truncate text-xs text-zinc-500" title={session.cwd}>
           {project}
         </span>
-        <StateBadge state={state} />
+        <StateBadge state={state} onDismiss={onDismissFinished} />
       </div>
     </div>
   )
