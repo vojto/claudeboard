@@ -16,10 +16,12 @@ import {
 import { horizontalListSortingStrategy, SortableContext } from "@dnd-kit/sortable"
 import { useState } from "react"
 import { BoardColumn } from "../components/board-column"
+import { ProjectFilter } from "../components/project-filter"
 import { SessionCard, SessionCardBody } from "../components/session-card"
 import * as boards from "../lib/board"
 import type { Board, Column } from "../lib/board"
 import { openSession } from "../lib/claude"
+import { listProjects, visibleCardIds } from "../lib/projects"
 import { useBoard } from "../lib/use-board"
 import { useInboxAutoCollapse } from "../lib/use-inbox-auto-collapse"
 
@@ -100,14 +102,7 @@ export function BoardScreen() {
       return
     }
 
-    update((current) => {
-      const toColumnId = boards.findColumnId(current, overKey)
-      if (!toColumnId || over.data.current?.type !== "card") return current
-      const column = current.columns.find((column) => column.id === toColumnId)!
-      const isMovingDown = column.cardIds.indexOf(activeKey) < column.cardIds.indexOf(overKey)
-      const beforeId = isMovingDown ? column.cardIds[column.cardIds.indexOf(overKey) + 1] : overKey
-      return boards.moveCard(current, activeKey, toColumnId, beforeId)
-    })
+    update((current) => boards.dropCard(current, activeKey, overKey, over.data.current?.type === "card"))
   }
 
   function handleAddColumn() {
@@ -126,17 +121,49 @@ export function BoardScreen() {
     if (title) update((current) => boards.renameColumn(current, columnId, title))
   }
 
-  /* Only running sessions are shown. */
+  /* Filtering affects rendering and sorting targets, never the stored card order. */
+  const projects = listProjects(board, liveSessions)
   const shownColumns = board.columns.map((column) => ({
     column,
-    visibleCardIds: column.cardIds.filter((id) => liveSessions[id]),
+    visibleCardIds: visibleCardIds(board, column, liveSessions),
   }))
+  const hasVisibleCards = shownColumns.some(({ visibleCardIds }) => visibleCardIds.length > 0)
+
+  function resetProjects() {
+    if (activeId) return
+    update((current) => ({ ...current, selectedProjectPaths: null }))
+  }
 
   const activeColumn = board.columns.find((column) => column.id === activeId)
   const activeSession = activeId ? board.sessions[activeId] : undefined
 
   return (
     <main className="flex h-screen flex-col bg-white dark:bg-zinc-950">
+      <ProjectFilter
+        projects={projects}
+        selectedPaths={board.selectedProjectPaths}
+        disabled={Boolean(activeId)}
+        onToggle={(path) => {
+          if (!activeId) update((current) => boards.toggleProject(current, path))
+        }}
+        onReset={resetProjects}
+      />
+      {hasPolled && board.selectedProjectPaths !== null && !hasVisibleCards && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center gap-2 px-4 pt-3 text-sm text-zinc-500 dark:text-zinc-400"
+        >
+          No live sessions for the selected projects
+          <button
+            type="button"
+            disabled={Boolean(activeId)}
+            onClick={resetProjects}
+            className="rounded text-blue-600 underline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:opacity-50 dark:text-blue-400"
+          >
+            All projects
+          </button>
+        </div>
+      )}
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
@@ -145,7 +172,7 @@ export function BoardScreen() {
         onDragEnd={handleDragEnd}
         onDragCancel={() => setActiveId(null)}
       >
-        <div className="flex flex-1 items-start gap-3 overflow-x-auto p-4">
+        <div className="flex min-h-0 flex-1 items-start gap-3 overflow-x-auto p-4">
           <SortableContext items={shownColumns.map(({ column }) => column.id)} strategy={horizontalListSortingStrategy}>
             {shownColumns.map(({ column, visibleCardIds }) => (
               <BoardColumn

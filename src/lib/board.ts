@@ -26,6 +26,7 @@ export type Board = {
   colors: Record<string, CardColor>
   archivedIds: string[]
   finishedIds: string[]
+  selectedProjectPaths: string[] | null
 }
 
 export function emptyBoard(): Board {
@@ -35,6 +36,7 @@ export function emptyBoard(): Board {
     colors: {},
     archivedIds: [],
     finishedIds: [],
+    selectedProjectPaths: null,
   }
 }
 
@@ -170,6 +172,25 @@ export function moveCard(board: Board, cardId: string, toColumnId: string, befor
 export function moveCardToTop(board: Board, cardId: string, toColumnId: string): Board {
   const toColumn = board.columns.find((column) => column.id === toColumnId)
   return moveCard(board, cardId, toColumnId, toColumn?.cardIds[0])
+}
+
+/* Visible cards anchor drops in the complete order, including any hidden cards. */
+export function dropCard(board: Board, cardId: string, overId: string, overCard: boolean): Board {
+  if (cardId === overId) return board
+  const toColumnId = findColumnId(board, overId)
+  if (!toColumnId) return board
+  const column = board.columns.find((column) => column.id === toColumnId)!
+  const overIndex = column.cardIds.indexOf(overId)
+  const fromIndex = column.cardIds.indexOf(cardId)
+  const movingDown = fromIndex !== -1 && fromIndex < overIndex
+  const beforeId = overCard ? (movingDown ? column.cardIds[overIndex + 1] : overId) : undefined
+  return moveCard(board, cardId, toColumnId, beforeId)
+}
+
+export function toggleProject(board: Board, path: string): Board {
+  const selected = board.selectedProjectPaths ?? []
+  const paths = selected.includes(path) ? selected.filter((item) => item !== path) : [...selected, path]
+  return { ...board, selectedProjectPaths: paths.length ? paths : null }
 }
 
 /* Moves a column to where `overId` is. The Inbox always stays first. */

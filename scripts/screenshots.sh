@@ -1,6 +1,7 @@
 #!/bin/bash
 # Retakes the README screenshots in docs/ from the fake-data page docs/demo.html.
 # Needs Google Chrome and the Vite dev server running (`pnpm dev` or `pnpm tauri dev`).
+# Pass `projects` to capture only the project-filter PR screenshots.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -15,6 +16,12 @@ shoot() {
   "$CHROME" --headless=new --user-data-dir="$PROFILE/$out" --hide-scrollbars --force-device-scale-factor=2 \
     --window-size=1560,480 --virtual-time-budget=3000 "$@" --screenshot="docs/$out" "$url" 2>&1 | grep written
 }
+
+if [[ "${1:-}" == "projects" ]]; then
+  shoot project-filter.png "$URL?projects"
+  shoot project-filter-menu.png "$URL?projects&manyprojects"
+  exit 0
+fi
 
 shoot board-light.png "$URL?collapsed"
 shoot board-dark.png "$URL" --force-dark-mode --blink-settings=preferredColorScheme=0

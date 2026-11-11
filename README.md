@@ -9,6 +9,7 @@ Every running Claude Code session shows up as a card. You make the columns and d
 ## What it does
 
 - **Live sessions.** Reads `~/.claude/sessions` every 2 seconds. New sessions land in the **Inbox** (the blue column). It collapses on its own when it's empty.
+- **Filter by project.** Select projects using chips, or a dropdown when there are more than five. Your selection is remembered between launches.
 - **Live state.** Each card shows **Busy**, **Idle**, a red **Needs you** when Claude is asking you a question or waiting for permission, or a purple **Merged** once the session's pull request is merged.
 - **Busy goes to the top.** A card that turns busy or starts needing you jumps to the top of its column. Otherwise your order stays.
 - **Ended sessions hide.** When a session's process exits, its card disappears. If the session starts again, the card comes back in the same spot.
