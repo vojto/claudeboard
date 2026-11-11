@@ -5,6 +5,7 @@
   Used by scripts/screenshots.sh while `pnpm dev` is running.
   ?menu opens a right-click menu, ?color / ?move also open its Color / Move to submenu, ?noinbox empties the Inbox,
   ?collapsed collapses the Done column, ?colmenu right-clicks a column header.
+  ?projects selects two projects; add &manyprojects to show the open Projects dropdown.
 -->
 <html lang="en">
   <head>
@@ -23,6 +24,12 @@
         ["s8", "Explore new onboarding flow", "/Users/me/Code/acme-mobile", "idle"],
         ["s9", "Bump dependencies", "/Users/me/Code/acme-api", "merged"],
       ].map(([id, name, cwd, status]) => ({ id: "local_" + id, name, cwd, status }))
+      if (params.has("manyprojects")) {
+        sessions.push(
+          { id: "local_s10", name: "Update deployment pipeline", cwd: "/Users/me/Code/acme-infra", status: "idle" },
+          { id: "local_s11", name: "Refresh component library", cwd: "/Users/me/Code/acme-design", status: "busy" },
+        )
+      }
 
       const board = {
         columns: [
@@ -34,6 +41,15 @@
         sessions: Object.fromEntries(sessions.map(({ id, name, cwd }) => [id, { id, name, cwd }])),
         colors: { local_s3: "purple", local_s2: "blue", local_s6: "green", local_s9: "orange" },
         archivedIds: [],
+      }
+      if (params.has("manyprojects")) board.columns[0].cardIds.push("local_s10", "local_s11")
+      if (params.has("projects")) {
+        board.selectedProjectPaths = ["/Users/me/Code/acme-web", "/Users/me/Code/acme-api"]
+        if (params.has("manyprojects")) {
+          setTimeout(() => {
+            document.querySelector('[aria-label="Filter by project"] [aria-haspopup="menu"]').click()
+          }, 800)
+        }
       }
       if (params.has("collapsed")) board.columns[3].isCollapsed = true
       if (params.has("colmenu")) {
