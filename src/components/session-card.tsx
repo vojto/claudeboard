@@ -3,6 +3,7 @@ import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import type { CardState, Column, KnownSession } from "../lib/board"
 import { type CardColor, COLOR_STYLES, DEFAULT_CARD_STYLE } from "../lib/colors"
+import { projectName, projectPath } from "../lib/projects"
 import { MenuItem, MenuPopup, MenuSeparator } from "../ui/menu"
 import { ColorSubmenu } from "./color-submenu"
 import { MoveToSubmenu } from "./move-to-submenu"
@@ -90,8 +91,7 @@ type BodyProps = {
 }
 
 export function SessionCardBody({ session, state, color, onOpen, onDismissFinished }: BodyProps) {
-  const projectPath = session.cwd.split("/.claude/worktrees/")[0]
-  const project = projectPath.split("/").filter(Boolean).pop() ?? projectPath
+  const project = projectName(projectPath(session.cwd))
   return (
     <div
       className={`rounded-lg border p-3 shadow-xs select-none ${color ? COLOR_STYLES[color].card : DEFAULT_CARD_STYLE}`}

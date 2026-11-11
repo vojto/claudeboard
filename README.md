@@ -9,6 +9,7 @@ Every running Claude Code session shows up as a card. You make the columns and d
 ## What it does
 
 - **Live sessions.** Reads `~/.claude/sessions` every 2 seconds. New sessions land in the **Inbox** (the blue column). It collapses on its own when it's empty.
+- **Filter by project.** Toggle project chips above the board to show one or several projects. With six or more projects, use the Projects checkbox menu instead. Counts show live, unarchived sessions; Claude worktrees belong to their parent project. Your selection is remembered between launches. **All projects** resets it. All columns stay available while filtering, and hidden cards keep their order.
 - **Live state.** Each card shows **Busy**, **Idle**, a red **Needs you** when Claude is asking you a question or waiting for permission, or a purple **Merged** once the session's pull request is merged.
 - **Busy goes to the top.** A card that turns busy or starts needing you jumps to the top of its column. Otherwise your order stays.
 - **Ended sessions hide.** When a session's process exits, its card disappears. If the session starts again, the card comes back in the same spot.
@@ -53,6 +54,12 @@ You need [Rust](https://rustup.rs), Node and [pnpm](https://pnpm.io). macOS only
 ```bash
 pnpm install
 pnpm tauri dev
+```
+
+Run the project filter and board tests (Node 22.18+):
+
+```bash
+pnpm test
 ```
 
 Retake the README screenshots (uses fake sessions from `docs/demo.html`, needs the dev server running):
