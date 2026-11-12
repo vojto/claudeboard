@@ -13,6 +13,9 @@
  *   e.g. started by a script) that aren't archived. These often have no process left by the
  *   time the app adopts them, so they show as idle. They carry adoptedAt so the board only
  *   drops recent ones into the Inbox. Plain terminal sessions aren't adopted, so they stay out.
+ *   A background session (kind "bg", e.g. started by a script) that is still running has no
+ *   hostSessionId and no record in the Claude app yet. It is listed as local_<sessionId>,
+ *   the same id the Claude app gives it once it adopts it, so its card stays the same.
  * - open_session: opens a session in Claude via the claude:// link.
  * - load_board / save_board: keep the board layout as JSON in the app data folder.
  * The window-state plugin remembers the window's size and position between launches.
@@ -32,9 +35,22 @@ struct SessionFile {
     pid: i32,
     session_id: Option<String>,
     host_session_id: Option<String>,
+    kind: Option<String>,
     name: Option<String>,
     cwd: Option<String>,
     status: Option<String>,
+}
+
+impl SessionFile {
+    /* The id the Claude app knows this session by. None for plain terminal sessions. */
+    fn board_id(&self) -> Option<String> {
+        if let Some(id) = &self.host_session_id {
+            return Some(id.clone());
+        }
+        let is_background = self.kind.as_deref() == Some("bg");
+        let session_id = self.session_id.as_ref().filter(|_| is_background)?;
+        Some(format!("local_{session_id}"))
+    }
 }
 
 #[derive(Serialize, Clone)]
@@ -207,7 +223,7 @@ fn live_sessions() -> Vec<Session> {
         .filter(|file| is_process_alive(file.pid))
         .filter(|file| !is_btw(&file.name))
         .filter_map(|file| {
-            let id = file.host_session_id?;
+            let id = file.board_id()?;
             let desktop = load_desktop_session(&id);
             if desktop
                 .as_ref()
