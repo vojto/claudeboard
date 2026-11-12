@@ -15,7 +15,8 @@ export type SessionStatus = "busy" | "idle" | "waiting" | "merged"
 /* What a card shows: the live status, or "finished" for a session that just finished and wasn't opened yet. */
 export type CardState = SessionStatus | "finished"
 
-export type KnownSession = { id: string; name: string; cwd: string }
+/* isRemote: started outside the Claude app (a script, a background job), not by hand in it. */
+export type KnownSession = { id: string; name: string; cwd: string; isRemote?: boolean }
 /* adoptedAt (ms) is set on sessions the Claude app adopted from elsewhere, like a script. */
 export type LiveSession = KnownSession & { status: SessionStatus; adoptedAt?: number | null }
 
@@ -63,8 +64,8 @@ export function mergeLiveSessions(board: Board, live: LiveSession[], now = Date.
   const sessions = { ...board.sessions }
   const newIds: string[] = []
 
-  for (const { id, name, cwd, adoptedAt } of live) {
-    sessions[id] = { id, name, cwd }
+  for (const { id, name, cwd, adoptedAt, isRemote } of live) {
+    sessions[id] = { id, name, cwd, isRemote }
     const isOldAdopted = adoptedAt != null && now - adoptedAt > ADOPTED_INBOX_WINDOW_MS
     if (!placedIds.has(id) && !archivedIds.has(id) && !isOldAdopted) newIds.push(id)
   }

@@ -11,6 +11,7 @@ import { StateBadge } from "./state-badge"
 
 /*
  * One Claude session on the board. Shows its title, project and state.
+ * A session started outside the Claude app (a script, a background job) gets a small "Remote" tag.
  * For worktree sessions (…/project/.claude/worktrees/branch) the project is the main folder's name.
  * Draggable between columns. Right-click opens a menu with Open (in Claude), Move to, Color and Archive.
  * A picked color tints the card. Right-clicks stop here so the column's menu doesn't open too.
@@ -102,8 +103,18 @@ export function SessionCardBody({ session, state, color, onOpen, onDismissFinish
         </span>
       </div>
       <div className="mt-2 flex items-center justify-between gap-2">
-        <span className="truncate text-xs text-zinc-500" title={session.cwd}>
-          {project}
+        <span className="flex min-w-0 items-center gap-1.5 text-xs text-zinc-500">
+          <span className="truncate" title={session.cwd}>
+            {project}
+          </span>
+          {session.isRemote && (
+            <span
+              className="shrink-0 rounded border border-zinc-300 px-1 text-[10px] font-medium uppercase tracking-wide dark:border-zinc-600"
+              title="Started outside the Claude app"
+            >
+              Remote
+            </span>
+          )}
         </span>
         <StateBadge state={state} onDismiss={onDismissFinished} />
       </div>

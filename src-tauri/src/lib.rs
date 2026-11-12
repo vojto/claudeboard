@@ -16,6 +16,7 @@
  *   A background session (kind "bg", e.g. started by a script) that is still running has no
  *   hostSessionId and no record in the Claude app yet. It is listed as local_<sessionId>,
  *   the same id the Claude app gives it once it adopts it, so its card stays the same.
+ *   Background and adopted sessions are marked isRemote, so the board can label them.
  * - open_session: opens a session in Claude via the claude:// link. A running background
  *   session the Claude app has no record of yet is opened by its remote-control id instead
  *   (claude://code/session_…), since the app can't find it by its local id.
@@ -64,6 +65,7 @@ struct Session {
     cwd: String,
     status: String,
     adopted_at: Option<u64>,
+    is_remote: bool,
 }
 
 fn claude_dir() -> PathBuf {
@@ -176,6 +178,7 @@ fn read_adopted(path: &PathBuf) -> Option<Session> {
         cwd: record.cwd.unwrap_or_default(),
         status: "idle".into(),
         adopted_at: record.created_at,
+        is_remote: true,
     })
 }
 
@@ -235,6 +238,10 @@ fn live_sessions() -> Vec<Session> {
         .filter_map(|file| {
             let id = file.board_id()?;
             let desktop = load_desktop_session(&id);
+            let is_remote = file.host_session_id.is_none()
+                || desktop
+                    .as_ref()
+                    .is_some_and(|session| session.adopted_from_other_surface == Some(true));
             if desktop
                 .as_ref()
                 .is_some_and(|session| session.scheduled_task_id.is_some())
@@ -255,6 +262,7 @@ fn live_sessions() -> Vec<Session> {
                 cwd: file.cwd.unwrap_or_default(),
                 status,
                 adopted_at: None,
+                is_remote,
             })
         })
         .collect()
