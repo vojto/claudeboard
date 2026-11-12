@@ -16,7 +16,9 @@
  *   A background session (kind "bg", e.g. started by a script) that is still running has no
  *   hostSessionId and no record in the Claude app yet. It is listed as local_<sessionId>,
  *   the same id the Claude app gives it once it adopts it, so its card stays the same.
- * - open_session: opens a session in Claude via the claude:// link.
+ * - open_session: opens a session in Claude via the claude:// link. A running background
+ *   session the Claude app has no record of yet is opened by its remote-control id instead
+ *   (claude://code/session_…), since the app can't find it by its local id.
  * - load_board / save_board: keep the board layout as JSON in the app data folder.
  * The window-state plugin remembers the window's size and position between launches.
  */
@@ -36,6 +38,7 @@ struct SessionFile {
     session_id: Option<String>,
     host_session_id: Option<String>,
     kind: Option<String>,
+    bridge_session_id: Option<String>,
     name: Option<String>,
     cwd: Option<String>,
     status: Option<String>,
@@ -210,7 +213,8 @@ fn list_sessions() -> Vec<Session> {
     sessions
 }
 
-fn live_sessions() -> Vec<Session> {
+/* The session files in ~/.claude/sessions whose process is still running. */
+fn live_session_files() -> Vec<SessionFile> {
     let Ok(entries) = fs::read_dir(claude_dir().join("sessions")) else {
         return vec![];
     };
@@ -221,6 +225,12 @@ fn live_sessions() -> Vec<Session> {
         .filter_map(|entry| fs::read_to_string(entry.path()).ok())
         .filter_map(|text| serde_json::from_str::<SessionFile>(&text).ok())
         .filter(|file| is_process_alive(file.pid))
+        .collect()
+}
+
+fn live_sessions() -> Vec<Session> {
+    live_session_files()
+        .into_iter()
         .filter(|file| !is_btw(&file.name))
         .filter_map(|file| {
             let id = file.board_id()?;
@@ -250,6 +260,21 @@ fn live_sessions() -> Vec<Session> {
         .collect()
 }
 
+/* The remote-control id of a running session the Claude app has no record of yet. */
+fn bridge_id_of_unadopted(id: &str) -> Option<String> {
+    if desktop_session_path(id).is_some() {
+        return None;
+    }
+    live_session_files()
+        .into_iter()
+        .find(|file| file.board_id().as_deref() == Some(id))?
+        .bridge_session_id
+        .filter(|bridge_id| {
+            bridge_id.starts_with("session_")
+                && bridge_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+        })
+}
+
 #[tauri::command]
 fn open_session(id: String) -> Result<(), String> {
     let is_valid_id = id.starts_with("local_")
@@ -261,7 +286,10 @@ fn open_session(id: String) -> Result<(), String> {
         return Err(format!("Not a valid session id: {id}"));
     }
 
-    let url = format!("claude://code/continue?session={id}");
+    let url = match bridge_id_of_unadopted(&id) {
+        Some(bridge_id) => format!("claude://code/{bridge_id}"),
+        None => format!("claude://code/continue?session={id}"),
+    };
     Command::new("open")
         .arg(url)
         .status()
