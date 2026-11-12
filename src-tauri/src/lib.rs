@@ -9,13 +9,20 @@
  *   lists a merged pull request and none that are still open.
  *   Sessions named "btw…" (side questions) and sessions started by a scheduled task
  *   (the Claude app's record has a scheduledTaskId) are left out.
+ *   It also lists sessions the Claude app adopted from somewhere else (adoptedFromOtherSurface,
+ *   e.g. started by a script) that aren't archived. These often have no process left by the
+ *   time the app adopts them, so they show as idle. They carry adoptedAt so the board only
+ *   drops recent ones into the Inbox. Plain terminal sessions aren't adopted, so they stay out.
  * - open_session: opens a session in Claude via the claude:// link.
  * - load_board / save_board: keep the board layout as JSON in the app data folder.
  * The window-state plugin remembers the window's size and position between launches.
  */
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
+use std::sync::{LazyLock, Mutex};
+use std::time::SystemTime;
 use std::process::Command;
 use tauri::Manager;
 
@@ -30,12 +37,14 @@ struct SessionFile {
     status: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 struct Session {
     id: String,
     name: String,
     cwd: String,
     status: String,
+    adopted_at: Option<u64>,
 }
 
 fn claude_dir() -> PathBuf {
@@ -51,6 +60,13 @@ fn is_waiting(session_id: &Option<String>) -> bool {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct DesktopSession {
+    session_id: Option<String>,
+    title: Option<String>,
+    worktree_name: Option<String>,
+    cwd: Option<String>,
+    created_at: Option<u64>,
+    is_archived: Option<bool>,
+    adopted_from_other_surface: Option<bool>,
     prs: Option<Vec<PullRequest>>,
     scheduled_task_id: Option<String>,
 }
@@ -60,16 +76,26 @@ struct PullRequest {
     state: Option<String>,
 }
 
-fn desktop_session_path(host_session_id: &str) -> Option<PathBuf> {
+/* The Claude app's per-org folders: claude-code-sessions/<account>/<org>/. */
+fn desktop_org_dirs() -> Vec<PathBuf> {
     let home = std::env::var("HOME").unwrap_or_default();
     let base = PathBuf::from(home).join("Library/Application Support/Claude/claude-code-sessions");
-    let file_name = format!("{host_session_id}.json");
-    fs::read_dir(base)
-        .ok()?
+    let Ok(accounts) = fs::read_dir(base) else {
+        return vec![];
+    };
+    accounts
         .flatten()
         .filter_map(|account| fs::read_dir(account.path()).ok())
         .flat_map(|orgs| orgs.flatten())
-        .map(|org| org.path().join(&file_name))
+        .map(|org| org.path())
+        .collect()
+}
+
+fn desktop_session_path(host_session_id: &str) -> Option<PathBuf> {
+    let file_name = format!("{host_session_id}.json");
+    desktop_org_dirs()
+        .into_iter()
+        .map(|org| org.join(&file_name))
         .find(|path| path.exists())
 }
 
@@ -101,8 +127,74 @@ fn is_btw(name: &Option<String>) -> bool {
         .is_some_and(|name| name.to_lowercase().starts_with("btw"))
 }
 
+/*
+ * The Claude app's records that were adopted from elsewhere, by file path. Records are read
+ * again only when their file changes, since all of them together are tens of megabytes.
+ */
+static ADOPTED_CACHE: LazyLock<Mutex<HashMap<PathBuf, (SystemTime, Option<Session>)>>> =
+    LazyLock::new(Default::default);
+
+fn read_adopted(path: &PathBuf) -> Option<Session> {
+    let text = fs::read_to_string(path).ok()?;
+    if !text.contains("\"adoptedFromOtherSurface\":true") {
+        return None;
+    }
+    let record = serde_json::from_str::<DesktopSession>(&text).ok()?;
+    let is_shown = record.adopted_from_other_surface == Some(true)
+        && record.is_archived != Some(true)
+        && record.scheduled_task_id.is_none()
+        && !is_btw(&record.title);
+    if !is_shown {
+        return None;
+    }
+    Some(Session {
+        id: record.session_id?,
+        name: record
+            .title
+            .filter(|title| !title.is_empty())
+            .or(record.worktree_name)
+            .unwrap_or_else(|| "Untitled".into()),
+        cwd: record.cwd.unwrap_or_default(),
+        status: "idle".into(),
+        adopted_at: record.created_at,
+    })
+}
+
+/* Sessions the Claude app adopted from elsewhere and still shows, minus the ones in `skip`. */
+fn adopted_sessions(skip: &HashSet<String>) -> Vec<Session> {
+    let paths: Vec<PathBuf> = desktop_org_dirs()
+        .into_iter()
+        .filter_map(|org| fs::read_dir(org).ok())
+        .flat_map(|files| files.flatten())
+        .map(|entry| entry.path())
+        .filter(|path| path.extension().is_some_and(|ext| ext == "json"))
+        .collect();
+
+    let mut cache = ADOPTED_CACHE.lock().unwrap_or_else(|e| e.into_inner());
+    cache.retain(|path, _| paths.contains(path));
+    paths
+        .iter()
+        .filter_map(|path| {
+            let modified = fs::metadata(path).and_then(|meta| meta.modified()).ok()?;
+            let is_fresh = cache.get(path).is_some_and(|(time, _)| *time == modified);
+            if !is_fresh {
+                cache.insert(path.clone(), (modified, read_adopted(path)));
+            }
+            let session = cache.get(path)?.1.as_ref()?;
+            (!skip.contains(&session.id)).then(|| session.clone())
+        })
+        .collect()
+}
+
 #[tauri::command]
 fn list_sessions() -> Vec<Session> {
+    let mut sessions = live_sessions();
+    let live_ids: HashSet<String> = sessions.iter().map(|session| session.id.clone()).collect();
+    sessions.extend(adopted_sessions(&live_ids));
+    sessions
+}
+
+fn live_sessions() -> Vec<Session> {
     let Ok(entries) = fs::read_dir(claude_dir().join("sessions")) else {
         return vec![];
     };
@@ -136,6 +228,7 @@ fn list_sessions() -> Vec<Session> {
                 name: file.name.unwrap_or_else(|| "Untitled".into()),
                 cwd: file.cwd.unwrap_or_default(),
                 status,
+                adopted_at: None,
             })
         })
         .collect()

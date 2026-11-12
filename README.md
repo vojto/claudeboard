@@ -33,6 +33,7 @@ Dark mode follows your system:
 Claude has no official API for this. Claudeboard uses two undocumented things, so a Claude update could break it:
 
 - Each running session writes `~/.claude/sessions/<pid>.json` with its title, folder, status and `hostSessionId`. Claudeboard keeps files whose process is still alive.
+- Sessions started elsewhere (for example by a script) and then adopted by the Claude app show up too, even with no process left. Only ones from the last 24 hours land in the Inbox. Plain terminal sessions aren't adopted, so they stay off the board.
 - Opening a card runs `open "claude://code/continue?session=local_…"`. If nothing happens, check that Claude's "entry points" setting is on.
 
 The session files only say busy or idle. For **Needs you**, install the hooks once:

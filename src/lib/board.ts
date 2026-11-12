@@ -16,7 +16,11 @@ export type SessionStatus = "busy" | "idle" | "waiting" | "merged"
 export type CardState = SessionStatus | "finished"
 
 export type KnownSession = { id: string; name: string; cwd: string }
-export type LiveSession = KnownSession & { status: SessionStatus }
+/* adoptedAt (ms) is set on sessions the Claude app adopted from elsewhere, like a script. */
+export type LiveSession = KnownSession & { status: SessionStatus; adoptedAt?: number | null }
+
+/* Adopted sessions older than this don't go into the Inbox, so old ones don't flood it. */
+const ADOPTED_INBOX_WINDOW_MS = 24 * 60 * 60 * 1000
 
 export type Column = { id: string; title: string; cardIds: string[]; isCollapsed?: boolean }
 
@@ -49,16 +53,20 @@ export function parseBoard(json: string | null): Board {
   }
 }
 
-/* Folds the current live sessions into the board: refreshes names, drops new ones into the Inbox. */
-export function mergeLiveSessions(board: Board, live: LiveSession[]): Board {
+/*
+ * Folds the current live sessions into the board: refreshes names, drops new ones into the Inbox.
+ * Adopted sessions only go into the Inbox if they're recent.
+ */
+export function mergeLiveSessions(board: Board, live: LiveSession[], now = Date.now()): Board {
   const placedIds = new Set(board.columns.flatMap((column) => column.cardIds))
   const archivedIds = new Set(board.archivedIds)
   const sessions = { ...board.sessions }
   const newIds: string[] = []
 
-  for (const { id, name, cwd } of live) {
+  for (const { id, name, cwd, adoptedAt } of live) {
     sessions[id] = { id, name, cwd }
-    if (!placedIds.has(id) && !archivedIds.has(id)) newIds.push(id)
+    const isOldAdopted = adoptedAt != null && now - adoptedAt > ADOPTED_INBOX_WINDOW_MS
+    if (!placedIds.has(id) && !archivedIds.has(id) && !isOldAdopted) newIds.push(id)
   }
 
   const columns = board.columns.map((column) =>
